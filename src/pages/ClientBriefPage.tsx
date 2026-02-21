@@ -13,8 +13,7 @@ import {
   getBriefingsByLink,
   addClientQuestionToBriefing,
 } from '../services/briefing-db-service';
-import { saveReply, getRepliesByBriefing } from '../services/reply-service';
-import { getClientQuestionRepliesByBriefing } from '../services/client-question-reply-service';
+import { saveReply } from '../services/reply-service';
 import { getLinkBySlug, type BriefingLink } from '../services/link-service';
 import type {
   AppPhase,
@@ -31,6 +30,7 @@ export function ClientBriefPage() {
   const [linkLoading, setLinkLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [isReturnVisitor, setIsReturnVisitor] = useState(false);
 
   const [phase, setPhase] = useState<AppPhase>('idle');
   const [briefing, setBriefing] = useState<CuratedBriefing | null>(null);
@@ -57,25 +57,15 @@ export function ClientBriefPage() {
       if (result) {
         setLink(result);
 
-        // Check for existing briefing — if found, jump to result
-        const existing = await getBriefingsByLink(result.id);
-        if (existing.length > 0) {
-          const latest = existing[0];
-          setBriefing(latest.curated_json as CuratedBriefing);
-          setBriefingId(latest.id);
-
-          // Load existing replies
-          const replies = await getRepliesByBriefing(latest.id);
-          const map = new Map<number, string>();
-          replies.forEach((r) => map.set(r.question_index, r.answer_text));
-          setInitialReplies(map);
-
-          // Load client question replies (admin answers)
-          const cqReplies = await getClientQuestionRepliesByBriefing(latest.id);
-          const cqMap = new Map<number, string>();
-          cqReplies.forEach((r) => cqMap.set(r.question_index, r.answer_text));
-          setInitialClientQuestionReplies(cqMap);
-
+        // If the link is already completed, show thank-you message
+        if (result.status === 'completed') {
+          const existing = await getBriefingsByLink(result.id);
+          if (existing.length > 0) {
+            const latest = existing[0];
+            setBriefing(latest.curated_json as CuratedBriefing);
+            setBriefingId(latest.id);
+          }
+          setIsReturnVisitor(true);
           setPhase('result');
         }
       } else {
@@ -280,18 +270,32 @@ export function ClientBriefPage() {
         {/* Phase: processing-final — generating final brief */}
         {phase === 'processing-final' && <ProcessingIndicator />}
 
-        {/* Phase: result — show curated note */}
-        {phase === 'result' && briefing && (
-          <CuratedNote
-            briefing={briefing}
-            onReset={() => {}}
-            onReplySubmit={handleReplySubmit}
-            onClientQuestionAdd={handleClientQuestionAdd}
-            initialReplies={initialReplies}
-            initialClientQuestionReplies={initialClientQuestionReplies}
-            viewMode='client'
-          />
-        )}
+        {/* Phase: result — show curated note or thank-you */}
+        {phase === 'result' &&
+          briefing &&
+          (isReturnVisitor ? (
+            <div className='client-brief-page__completed'>
+              <div className='client-brief-page__completed-icon'>✓</div>
+              <h2>¡Gracias por responder!</h2>
+              <p>
+                Tu información sobre <strong>{briefing.title}</strong> fue
+                enviada correctamente.
+              </p>
+              <p className='client-brief-page__completed-sub'>
+                El profesional la revisará pronto.
+              </p>
+            </div>
+          ) : (
+            <CuratedNote
+              briefing={briefing}
+              onReset={() => {}}
+              onReplySubmit={handleReplySubmit}
+              onClientQuestionAdd={handleClientQuestionAdd}
+              initialReplies={initialReplies}
+              initialClientQuestionReplies={initialClientQuestionReplies}
+              viewMode='client'
+            />
+          ))}
       </div>
 
       {/* Footer */}

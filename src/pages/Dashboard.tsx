@@ -177,6 +177,13 @@ export function Dashboard() {
                       {link.briefingCount}{' '}
                       {link.briefingCount === 1 ? 'briefing' : 'briefings'}
                     </span>
+                    <span
+                      className={`dashboard__link-status dashboard__link-status--${link.status}`}
+                    >
+                      {link.status === 'completed'
+                        ? '✓ Completado'
+                        : '⏳ Pendiente'}
+                    </span>
                     <span className='dashboard__link-date'>
                       {new Date(link.created_at).toLocaleDateString()}
                     </span>

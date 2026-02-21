@@ -141,3 +141,58 @@
   margin-left: var(--space-sm);
   font-family: var(--paper-font-serif);
 }
+
+/* ── Completed / Thank-you state ── */
+.client-brief-page__completed {
+  text-align: center;
+  padding: var(--space-3xl) var(--space-xl);
+  margin-top: var(--space-xl);
+  animation: fadeInUp 0.6s ease both;
+}
+
+.client-brief-page__completed-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-lg);
+}
+
+.client-brief-page__completed h2 {
+  font-family: var(--paper-font-serif);
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--paper-text);
+  margin-bottom: var(--space-sm);
+}
+
+.client-brief-page__completed p {
+  font-family: var(--paper-font-serif);
+  color: var(--paper-text-secondary);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  margin-bottom: var(--space-xs);
+}
+
+.client-brief-page__completed-sub {
+  font-size: var(--text-sm) !important;
+  color: var(--paper-text-muted) !important;
+  margin-top: var(--space-sm) !important;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

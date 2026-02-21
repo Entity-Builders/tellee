@@ -234,6 +234,25 @@
   gap: var(--space-xs);
 }
 
+.dashboard__link-status {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dashboard__link-status--pending {
+  background: rgba(234, 179, 8, 0.12);
+  color: #a16207;
+}
+
+.dashboard__link-status--completed {
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+}
+
 .dashboard__link-date {
   font-size: var(--text-xs);
   color: var(--color-text-muted);

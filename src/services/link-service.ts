@@ -1,5 +1,7 @@
 import { supabase } from '../lib/supabase';
 
+export type LinkStatus = 'pending' | 'completed';
+
 export interface BriefingLink {
   id: string;
   slug: string;
@@ -7,6 +9,7 @@ export interface BriefingLink {
   title: string;
   profession_context: string | null;
   is_active: boolean;
+  status: LinkStatus;
   created_at: string;
 }
 
@@ -78,6 +81,19 @@ export async function getLinkBySlug(
 
   if (error) return null;
   return data;
+}
+
+/** Update the status of a link */
+export async function updateLinkStatus(
+  linkId: string,
+  status: LinkStatus,
+): Promise<void> {
+  const { error } = await supabase
+    .from('briefing_links')
+    .update({ status })
+    .eq('id', linkId);
+
+  if (error) throw new Error(error.message);
 }
 
 /** Deactivate a link */
