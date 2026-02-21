@@ -168,38 +168,25 @@ export function ClientBriefPage() {
     setBriefingId(saved.id);
 
     // Persist follow-up answers as replies to suggestedQuestions
-    if (answers && answers.length > 0 && result.suggestedQuestions.length > 0) {
+    if (answers && answers.length > 0) {
       const repliesMap = new Map<number, string>();
 
-      for (const answer of answers) {
-        // Find the best matching suggestedQuestion by text
-        const matchIndex = result.suggestedQuestions.findIndex(
-          (sq) =>
-            sq.question
-              .toLowerCase()
-              .includes(answer.question.toLowerCase().slice(0, 20)) ||
-            answer.question
-              .toLowerCase()
-              .includes(sq.question.toLowerCase().slice(0, 20)),
-        );
-
-        // Use the match index if found, otherwise append to the end
-        const idx =
-          matchIndex >= 0
-            ? matchIndex
-            : result.suggestedQuestions.length + repliesMap.size;
+      // Save each follow-up answer as a reply to the suggestedQuestion at the
+      // same index. If there are more answers than suggestedQuestions, we still
+      // persist them with the original question text from the follow-up.
+      for (let i = 0; i < answers.length; i++) {
+        const answer = answers[i];
+        const idx = i;
         const questionText =
-          matchIndex >= 0
-            ? result.suggestedQuestions[matchIndex].question
+          idx < result.suggestedQuestions.length
+            ? result.suggestedQuestions[idx].question
             : answer.question;
 
-        if (!repliesMap.has(idx)) {
-          repliesMap.set(idx, answer.answer);
-          try {
-            await saveReply(saved.id, idx, questionText, answer.answer);
-          } catch {
-            // Non-critical — don't break the flow
-          }
+        repliesMap.set(idx, answer.answer);
+        try {
+          await saveReply(saved.id, idx, questionText, answer.answer);
+        } catch {
+          // Non-critical — don't break the flow
         }
       }
 
