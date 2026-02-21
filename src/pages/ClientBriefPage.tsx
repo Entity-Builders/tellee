@@ -4,8 +4,11 @@ import { BriefingInput } from '../components/BriefingInput';
 import { ProcessingIndicator } from '../components/ProcessingIndicator';
 import { CuratedNote } from '../components/CuratedNote';
 import { curateBriefing } from '../services/briefing-service';
-import { saveBriefing } from '../services/briefing-db-service';
-import { saveReply } from '../services/reply-service';
+import {
+  saveBriefing,
+  getBriefingsByLink,
+} from '../services/briefing-db-service';
+import { saveReply, getRepliesByBriefing } from '../services/reply-service';
 import { getLinkBySlug, type BriefingLink } from '../services/link-service';
 import type { AppPhase, CuratedBriefing } from '../types';
 import './ClientBriefPage.css';
@@ -20,13 +23,32 @@ export function ClientBriefPage() {
   const [phase, setPhase] = useState<AppPhase>('idle');
   const [briefing, setBriefing] = useState<CuratedBriefing | null>(null);
   const [briefingId, setBriefingId] = useState<string | null>(null);
+  const [initialReplies, setInitialReplies] = useState<Map<number, string>>(
+    new Map(),
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!slug) return;
-    getLinkBySlug(slug).then((result) => {
+    getLinkBySlug(slug).then(async (result) => {
       if (result) {
         setLink(result);
+
+        // Check for existing briefing — if found, jump to result
+        const existing = await getBriefingsByLink(result.id);
+        if (existing.length > 0) {
+          const latest = existing[0];
+          setBriefing(latest.curated_json as CuratedBriefing);
+          setBriefingId(latest.id);
+
+          // Load existing replies
+          const replies = await getRepliesByBriefing(latest.id);
+          const map = new Map<number, string>();
+          replies.forEach((r) => map.set(r.question_index, r.answer_text));
+          setInitialReplies(map);
+
+          setPhase('result');
+        }
       } else {
         setNotFound(true);
       }
@@ -74,6 +96,7 @@ export function ClientBriefPage() {
     setPhase('idle');
     setBriefing(null);
     setBriefingId(null);
+    setInitialReplies(new Map());
     setError(null);
     setIsFocused(false);
   };
@@ -136,6 +159,7 @@ export function ClientBriefPage() {
             briefing={briefing}
             onReset={handleReset}
             onReplySubmit={handleReplySubmit}
+            initialReplies={initialReplies}
           />
         )}
       </div>
