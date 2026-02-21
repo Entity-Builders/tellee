@@ -210,19 +210,6 @@ export function ClientBriefPage() {
     await addClientQuestionToBriefing(briefingId, question);
   };
 
-  const handleReset = () => {
-    setPhase('idle');
-    setBriefing(null);
-    setBriefingId(null);
-    setInitialReplies(new Map());
-    setInitialClientQuestionReplies(new Map());
-    setFollowUpQuestions([]);
-    setClientText('');
-    setClientAttachments([]);
-    setError(null);
-    setIsFocused(false);
-  };
-
   // ── Loading state ──
   if (linkLoading) {
     return (
@@ -297,11 +284,12 @@ export function ClientBriefPage() {
         {phase === 'result' && briefing && (
           <CuratedNote
             briefing={briefing}
-            onReset={handleReset}
+            onReset={() => {}}
             onReplySubmit={handleReplySubmit}
             onClientQuestionAdd={handleClientQuestionAdd}
             initialReplies={initialReplies}
             initialClientQuestionReplies={initialClientQuestionReplies}
+            viewMode='client'
           />
         )}
       </div>

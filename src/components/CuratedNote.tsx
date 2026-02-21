@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import {
-  Copy,
   Check,
   RotateCcw,
   FileText,
@@ -49,7 +48,6 @@ export function CuratedNote({
   initialClientQuestionReplies,
   viewMode = 'client',
 }: CuratedNoteProps) {
-  const [copied, setCopied] = useState(false);
   const [activeReplyIndex, setActiveReplyIndex] = useState<number | null>(null);
   const [replyText, setReplyText] = useState('');
   const [answeredQuestions, setAnsweredQuestions] = useState<
@@ -110,17 +108,6 @@ export function CuratedNote({
       addQuestionRef.current?.focus();
     }
   }, [showAddQuestion]);
-
-  const handleCopy = async () => {
-    const text = formatBriefingAsText(briefing, answeredQuestions);
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
-  };
 
   const handleReplyOpen = (index: number) => {
     setActiveReplyIndex(index);
@@ -554,71 +541,19 @@ export function CuratedNote({
         </div>
       )}
 
-      {/* Actions */}
-      <div className='curated-note__actions'>
-        <button
-          className='curated-note__btn curated-note__btn--secondary'
-          onClick={onReset}
-          type='button'
-        >
-          <RotateCcw size={14} />
-          <span>Nuevo Briefing</span>
-        </button>
-        <button
-          className={`curated-note__btn curated-note__btn--primary ${copied ? 'curated-note__btn--copied' : ''}`}
-          onClick={handleCopy}
-          type='button'
-        >
-          {copied ? (
-            <>
-              <Check size={14} />
-              <span>¡Copiado!</span>
-            </>
-          ) : (
-            <>
-              <Copy size={14} />
-              <span>Copiar Nota</span>
-            </>
-          )}
-        </button>
-      </div>
+      {/* Actions — admin only */}
+      {viewMode === 'admin' && (
+        <div className='curated-note__actions'>
+          <button
+            className='curated-note__btn curated-note__btn--secondary'
+            onClick={onReset}
+            type='button'
+          >
+            <RotateCcw size={14} />
+            <span>Nuevo Briefing</span>
+          </button>
+        </div>
+      )}
     </div>
   );
-}
-
-function formatBriefingAsText(
-  briefing: CuratedBriefing,
-  answers: Map<number, string>,
-): string {
-  const lines = [
-    `📋 ${briefing.title}`,
-    `${briefing.summary}`,
-    '',
-    '---',
-    ...briefing.fields.map((f) => `• ${f.label}: ${f.value}`),
-  ];
-
-  if (briefing.clientQuestions.length > 0) {
-    lines.push('', '---', '', '❓ Tus Preguntas:');
-    briefing.clientQuestions.forEach((q) => {
-      lines.push(`• ${q.question}`);
-      if (q.context) lines.push(`  💬 "${q.context}"`);
-    });
-  }
-
-  if (briefing.suggestedQuestions.length > 0) {
-    lines.push('', '---', '', '💡 Preguntas Sugeridas:');
-    briefing.suggestedQuestions.forEach((q, index) => {
-      lines.push(`• ${q.question}`);
-      const answer = answers.get(index);
-      if (answer) {
-        lines.push(`  ✅ ${answer}`);
-      } else {
-        lines.push(`  → ${q.reason}`);
-      }
-    });
-  }
-
-  lines.push('', '---', `Generado con Tellee ✨`);
-  return lines.join('\n');
 }

@@ -92,3 +92,13 @@ export async function addClientQuestionToBriefing(
 
   if (error) throw new Error(error.message);
 }
+
+/** Delete a briefing by ID */
+export async function deleteBriefing(briefingId: string): Promise<void> {
+  const { error } = await supabase
+    .from('briefings')
+    .delete()
+    .eq('id', briefingId);
+
+  if (error) throw new Error(error.message);
+}

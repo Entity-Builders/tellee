@@ -5,6 +5,7 @@ import { CuratedNote } from '../components/CuratedNote';
 import { ProjectDescription } from '../components/ProjectDescription';
 import {
   getBriefingsByLink,
+  deleteBriefing,
   type PersistedBriefing,
 } from '../services/briefing-db-service';
 import { getRepliesByBriefing } from '../services/reply-service';
@@ -60,6 +61,19 @@ export function LinkDetail() {
       setClientQuestionRepliesMap(map);
     });
   }, [selectedBriefing?.id]);
+
+  const handleResetBriefing = async () => {
+    if (!selectedBriefing || !linkId) return;
+    try {
+      await deleteBriefing(selectedBriefing.id);
+      // Refresh the list
+      const remaining = await getBriefingsByLink(linkId);
+      setBriefings(remaining);
+      setSelectedBriefing(remaining.length > 0 ? remaining[0] : null);
+    } catch (err) {
+      console.error('Failed to delete briefing:', err);
+    }
+  };
 
   const handleClientQuestionReplySubmit = async (
     questionIndex: number,
@@ -141,7 +155,7 @@ export function LinkDetail() {
               <>
                 <CuratedNote
                   briefing={selectedBriefing.curated_json as CuratedBriefing}
-                  onReset={() => {}}
+                  onReset={handleResetBriefing}
                   initialReplies={repliesMap}
                   initialClientQuestionReplies={clientQuestionRepliesMap}
                   onClientQuestionReplySubmit={handleClientQuestionReplySubmit}
