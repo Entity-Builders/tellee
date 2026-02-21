@@ -230,3 +230,90 @@
     justify-content: center;
   }
 }
+
+/* ── Paper Theme Overrides ── */
+.paper-theme .curated-note__header {
+  border-bottom-color: var(--paper-border);
+}
+
+.paper-theme .curated-note__icon {
+  background: var(--paper-accent);
+  box-shadow: none;
+}
+
+.paper-theme .curated-note__title {
+  font-family: var(--paper-font-serif);
+  color: var(--paper-text);
+}
+
+.paper-theme .curated-note__summary {
+  font-family: var(--paper-font-serif);
+  color: var(--paper-text-secondary);
+}
+
+.paper-theme .curated-note__field {
+  background: var(--paper-bg-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.paper-theme .curated-note__field-label {
+  color: var(--paper-text-muted);
+}
+
+.paper-theme .curated-note__field-value {
+  color: var(--paper-text);
+}
+
+.paper-theme .curated-note__section-title {
+  font-family: var(--paper-font-serif);
+  color: var(--paper-text);
+}
+
+.paper-theme .curated-note__section-count {
+  background: var(--paper-bg-subtle);
+  color: var(--paper-text-muted);
+}
+
+.paper-theme .curated-note__question-item {
+  background: var(--paper-bg-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.paper-theme .curated-note__question-text {
+  color: var(--paper-text);
+}
+
+.paper-theme .curated-note__question-context {
+  color: var(--paper-text-muted);
+}
+
+.paper-theme .curated-note__question-reason {
+  color: var(--paper-text-secondary);
+}
+
+.paper-theme .curated-note__actions {
+  border-top-color: var(--paper-border);
+}
+
+.paper-theme .curated-note__btn--secondary {
+  background: var(--paper-bg-subtle);
+  color: var(--paper-text-secondary);
+  border-color: var(--paper-border);
+}
+
+.paper-theme .curated-note__btn--secondary:hover {
+  background: var(--paper-bg);
+  color: var(--paper-text);
+}
+
+.paper-theme .curated-note__btn--primary {
+  background: var(--paper-accent);
+  color: var(--paper-bg);
+  box-shadow: none;
+  border-color: transparent;
+}
+
+.paper-theme .curated-note__btn--primary:hover {
+  background: var(--paper-accent-hover);
+  box-shadow: 0 4px 12px rgba(44, 44, 44, 0.15);
+}

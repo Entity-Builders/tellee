@@ -240,3 +240,30 @@ a:hover {
 .animate-fade-in-up-delay-3 {
   animation: fadeInUp 0.5s 0.3s var(--transition-slow) both;
 }
+
+/* ============================================================
+   Paper Theme — Client-facing link page
+   A warm, minimal aesthetic like a blank notebook page
+   ============================================================ */
+.paper-theme {
+  --paper-bg: #f5f0e8;
+  --paper-bg-subtle: #ede8df;
+  --paper-text: #2c2c2c;
+  --paper-text-secondary: #5c564c;
+  --paper-text-muted: #8a8578;
+  --paper-border: rgba(44, 44, 44, 0.08);
+  --paper-accent: #5c5347;
+  --paper-accent-hover: #3d3832;
+  --paper-font-serif: 'Lora', Georgia, serif;
+  --paper-cursor-color: #2c2c2c;
+}
+
+@keyframes cursorBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}

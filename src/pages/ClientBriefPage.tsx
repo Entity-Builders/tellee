@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { MessageSquareText } from 'lucide-react';
 import { BriefingInput } from '../components/BriefingInput';
 import { ProcessingIndicator } from '../components/ProcessingIndicator';
 import { CuratedNote } from '../components/CuratedNote';
@@ -15,6 +14,7 @@ export function ClientBriefPage() {
   const [link, setLink] = useState<BriefingLink | null>(null);
   const [linkLoading, setLinkLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   const [phase, setPhase] = useState<AppPhase>('idle');
   const [briefing, setBriefing] = useState<CuratedBriefing | null>(null);
@@ -62,44 +62,51 @@ export function ClientBriefPage() {
     setPhase('idle');
     setBriefing(null);
     setError(null);
+    setIsFocused(false);
   };
 
+  // ── Loading state ──
   if (linkLoading) {
     return (
-      <div className='client-brief-page'>
+      <div className='client-brief-page paper-theme'>
         <div className='client-brief-page__loading'>Cargando...</div>
       </div>
     );
   }
 
+  // ── Not found state ──
   if (notFound) {
     return (
-      <div className='client-brief-page'>
-        <div className='client-brief-page__not-found glass-card'>
-          <h2>Link no encontrado</h2>
-          <p>Este link no existe o fue desactivado.</p>
+      <div className='client-brief-page paper-theme'>
+        <div className='client-brief-page__content'>
+          <div className='client-brief-page__not-found'>
+            <h2>Link no encontrado</h2>
+            <p>Este link no existe o fue desactivado.</p>
+          </div>
         </div>
       </div>
     );
   }
 
+  // ── Main state ──
   return (
-    <div className='client-brief-page'>
-      {/* Header */}
-      <header className='client-brief-page__header animate-fade-in-up'>
+    <div
+      className={`client-brief-page paper-theme ${isFocused || phase !== 'idle' ? 'client-brief-page--focused' : ''}`}
+    >
+      <div className='client-brief-page__content'>
+        {/* Title — reveals with animation on focus */}
         <h1 className='client-brief-page__title'>{link?.title}</h1>
-        <p className='client-brief-page__subtitle'>
-          Describí tu pedido con tus palabras. La IA se encarga de organizarlo.
-        </p>
-      </header>
 
-      {/* Main Content */}
-      <main className='client-brief-page__main'>
+        {/* Main content */}
         {(phase === 'idle' || phase === 'error') && (
           <>
-            <BriefingInput onSubmit={handleSubmit} isProcessing={false} />
+            <BriefingInput
+              onSubmit={handleSubmit}
+              isProcessing={false}
+              onFocusChange={setIsFocused}
+            />
             {error && (
-              <div className='error-banner animate-fade-in-up'>
+              <div className='error-banner'>
                 <p>{error}</p>
                 <button onClick={() => setError(null)} type='button'>
                   Cerrar
@@ -114,7 +121,7 @@ export function ClientBriefPage() {
         {phase === 'result' && briefing && (
           <CuratedNote briefing={briefing} onReset={handleReset} />
         )}
-      </main>
+      </div>
 
       {/* Footer */}
       <footer className='client-brief-page__footer'>
@@ -124,7 +131,6 @@ export function ClientBriefPage() {
           target='_blank'
           rel='noopener noreferrer'
         >
-          <MessageSquareText size={14} />
           <span>
             Powered by <strong>Tellee</strong>
           </span>

@@ -1,38 +1,76 @@
+/* ============================================================
+   ClientBriefPage — Paper & Cursor Theme
+   ============================================================ */
+
 .client-brief-page {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: var(--space-xl) var(--space-lg);
   min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--paper-bg);
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  /* Break out of .app container to fill full viewport */
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-top: calc(-1 * var(--space-lg));
+  margin-bottom: calc(-1 * var(--space-lg));
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-lg);
 }
 
-.client-brief-page__header {
-  text-align: center;
-  margin-bottom: var(--space-xl);
+/* Subtle paper grain texture via CSS */
+.client-brief-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+  pointer-events: none;
+  z-index: 0;
 }
 
-.client-brief-page__title {
-  font-family: var(--font-heading);
-  font-size: var(--text-2xl);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin-bottom: var(--space-xs);
-}
-
-.client-brief-page__subtitle {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
-.client-brief-page__main {
+/* Main content wrapper */
+.client-brief-page__content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg);
+  position: relative;
+  z-index: 1;
 }
 
+/* ── Title (subtle label, shows on focus) ── */
+.client-brief-page__title {
+  font-family: var(--paper-font-serif);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--paper-text-muted);
+  letter-spacing: 0.02em;
+  margin-bottom: var(--space-lg);
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
+}
+
+.client-brief-page--focused .client-brief-page__title {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Loading & Not Found states ── */
 .client-brief-page__loading {
   text-align: center;
   padding: var(--space-3xl);
-  color: var(--color-text-muted);
+  color: var(--paper-text-muted);
+  font-family: var(--paper-font-serif);
 }
 
 .client-brief-page__not-found {
@@ -42,34 +80,64 @@
 }
 
 .client-brief-page__not-found h2 {
-  font-family: var(--font-heading);
-  color: var(--color-text-primary);
+  font-family: var(--paper-font-serif);
+  color: var(--paper-text);
+  font-weight: 500;
   margin-bottom: var(--space-sm);
 }
 
 .client-brief-page__not-found p {
-  color: var(--color-text-secondary);
+  color: var(--paper-text-secondary);
+  font-family: var(--paper-font-serif);
 }
 
+/* ── Footer ── */
 .client-brief-page__footer {
   text-align: center;
-  padding: var(--space-xl) 0 var(--space-md);
-  margin-top: auto;
+  padding: var(--space-lg) 0 var(--space-md);
+  position: relative;
+  z-index: 1;
 }
 
 .client-brief-page__powered {
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-  transition: color var(--transition-fast);
+  font-size: 0.7rem;
+  color: var(--paper-text-muted);
+  font-family: var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: color 0.2s ease;
 }
 
 .client-brief-page__powered:hover {
-  color: var(--color-accent-secondary);
+  color: var(--paper-text-secondary);
 }
 
 .client-brief-page__powered strong {
-  color: var(--color-accent-secondary);
+  font-weight: 600;
+  color: var(--paper-accent);
+}
+
+/* ── Error banner ── */
+.client-brief-page .error-banner {
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  color: #991b1b;
+  font-family: var(--paper-font-serif);
+  font-size: var(--text-sm);
+}
+
+.client-brief-page .error-banner button {
+  background: none;
+  border: none;
+  color: #991b1b;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: var(--space-sm);
+  font-family: var(--paper-font-serif);
 }

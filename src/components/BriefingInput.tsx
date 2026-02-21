@@ -6,14 +6,17 @@ interface BriefingInputProps {
   onSubmit: (text: string) => void;
   isProcessing: boolean;
   defaultValue?: string;
+  onFocusChange?: (focused: boolean) => void;
 }
 
 const MAX_CHARS = 2000;
+const MIN_CHARS_TO_SUBMIT = 10;
 
 export function BriefingInput({
   onSubmit,
   isProcessing,
   defaultValue = '',
+  onFocusChange,
 }: BriefingInputProps) {
   const [text, setText] = useState(defaultValue);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -24,7 +27,11 @@ export function BriefingInput({
 
   const handleSubmit = () => {
     const trimmed = text.trim();
-    if (trimmed.length > 0 && !isProcessing) {
+    if (
+      trimmed.length >= MIN_CHARS_TO_SUBMIT &&
+      !isProcessing &&
+      !isOverLimit
+    ) {
       onSubmit(trimmed);
     }
   };
@@ -36,52 +43,63 @@ export function BriefingInput({
     }
   };
 
+  const handleFocus = () => onFocusChange?.(true);
+  const handleBlur = () => {
+    if (text.trim().length === 0) {
+      onFocusChange?.(false);
+    }
+  };
+
   const charCount = text.length;
   const isOverLimit = charCount > MAX_CHARS;
-  const canSubmit = text.trim().length > 10 && !isOverLimit && !isProcessing;
+  const canSubmit =
+    text.trim().length >= MIN_CHARS_TO_SUBMIT && !isOverLimit && !isProcessing;
+  const showSubmit = text.trim().length > 0;
 
   return (
-    <div className='briefing-input animate-fade-in-up-delay-1'>
-      {/* Textarea */}
-      <div className='briefing-input__field glass-card'>
+    <div className='briefing-input'>
+      {/* Writing area — no borders, no box */}
+      <div className='briefing-input__field' style={{ position: 'relative' }}>
+        {/* Blinking cursor when empty */}
+        {text.length === 0 && !isProcessing && (
+          <span className='briefing-input__cursor' />
+        )}
+
         <textarea
           ref={textareaRef}
           className='briefing-input__textarea'
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder='Describe el pedido de tu cliente tal como te lo contó. Tellee se encarga de organizarlo...'
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          placeholder=' '
           disabled={isProcessing}
-          rows={6}
-          aria-label='Describe el pedido del cliente'
+          rows={8}
+          aria-label='Escribí tu pedido'
         />
+      </div>
 
-        <div className='briefing-input__footer'>
-          <span
-            className={`briefing-input__char-count ${
-              isOverLimit ? 'briefing-input__char-count--over' : ''
-            }`}
-          >
-            {charCount} / {MAX_CHARS}
-          </span>
-
-          <button
-            className={`briefing-input__submit ${canSubmit ? 'briefing-input__submit--active' : ''}`}
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            type='button'
-            aria-label='Curar briefing'
-          >
-            {isProcessing ? (
-              <Sparkles size={18} className='briefing-input__spinner' />
-            ) : (
-              <>
-                <Send size={16} />
-                <span>Curar</span>
-              </>
-            )}
-          </button>
-        </div>
+      {/* Submit — appears when there's text */}
+      <div
+        className={`briefing-input__footer ${showSubmit ? 'briefing-input__footer--visible' : ''}`}
+      >
+        <button
+          className='briefing-input__submit'
+          onClick={handleSubmit}
+          disabled={!canSubmit}
+          type='button'
+          aria-label='Enviar'
+        >
+          {isProcessing ? (
+            <Sparkles size={16} className='briefing-input__spinner' />
+          ) : (
+            <>
+              <Send size={14} />
+              <span>Enviar</span>
+            </>
+          )}
+        </button>
       </div>
 
       <p className='briefing-input__hint'>

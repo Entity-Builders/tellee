@@ -73,3 +73,24 @@
     opacity: 1;
   }
 }
+
+/* ── Paper Theme Overrides ── */
+.paper-theme .processing__orb {
+  background: var(--paper-accent);
+  box-shadow: 0 4px 24px rgba(92, 83, 71, 0.2);
+  animation: none;
+}
+
+.paper-theme .processing__title {
+  font-family: var(--paper-font-serif);
+  color: var(--paper-text);
+}
+
+.paper-theme .processing__subtitle {
+  font-family: var(--paper-font-serif);
+  color: var(--paper-text-secondary);
+}
+
+.paper-theme .processing__dot {
+  background: var(--paper-accent);
+}
