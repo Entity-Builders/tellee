@@ -5,6 +5,7 @@ import { ProcessingIndicator } from '../components/ProcessingIndicator';
 import { CuratedNote } from '../components/CuratedNote';
 import { curateBriefing } from '../services/briefing-service';
 import { saveBriefing } from '../services/briefing-db-service';
+import { saveReply } from '../services/reply-service';
 import { getLinkBySlug, type BriefingLink } from '../services/link-service';
 import type { AppPhase, CuratedBriefing } from '../types';
 import './ClientBriefPage.css';
@@ -18,6 +19,7 @@ export function ClientBriefPage() {
 
   const [phase, setPhase] = useState<AppPhase>('idle');
   const [briefing, setBriefing] = useState<CuratedBriefing | null>(null);
+  const [briefingId, setBriefingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,8 +46,9 @@ export function ClientBriefPage() {
       );
       setBriefing(result);
 
-      // Save to database
-      await saveBriefing(link.id, text, result);
+      // Save to database and capture the briefing ID for replies
+      const saved = await saveBriefing(link.id, text, result);
+      setBriefingId(saved.id);
 
       setPhase('result');
     } catch (err) {
@@ -58,9 +61,19 @@ export function ClientBriefPage() {
     }
   };
 
+  const handleReplySubmit = async (
+    questionIndex: number,
+    question: string,
+    answer: string,
+  ) => {
+    if (!briefingId) return;
+    await saveReply(briefingId, questionIndex, question, answer);
+  };
+
   const handleReset = () => {
     setPhase('idle');
     setBriefing(null);
+    setBriefingId(null);
     setError(null);
     setIsFocused(false);
   };
@@ -119,7 +132,11 @@ export function ClientBriefPage() {
         {phase === 'processing' && <ProcessingIndicator />}
 
         {phase === 'result' && briefing && (
-          <CuratedNote briefing={briefing} onReset={handleReset} />
+          <CuratedNote
+            briefing={briefing}
+            onReset={handleReset}
+            onReplySubmit={handleReplySubmit}
+          />
         )}
       </div>
 

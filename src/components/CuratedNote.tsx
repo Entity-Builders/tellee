@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Copy,
   Check,
@@ -7,6 +7,9 @@ import {
   HelpCircle,
   Lightbulb,
   Quote,
+  MessageCircle,
+  Send,
+  X,
 } from 'lucide-react';
 import type { CuratedBriefing } from '../types';
 import './CuratedNote.css';
@@ -14,13 +17,36 @@ import './CuratedNote.css';
 interface CuratedNoteProps {
   briefing: CuratedBriefing;
   onReset: () => void;
+  onReplySubmit?: (
+    questionIndex: number,
+    question: string,
+    answer: string,
+  ) => void;
 }
 
-export function CuratedNote({ briefing, onReset }: CuratedNoteProps) {
+export function CuratedNote({
+  briefing,
+  onReset,
+  onReplySubmit,
+}: CuratedNoteProps) {
   const [copied, setCopied] = useState(false);
+  const [activeReplyIndex, setActiveReplyIndex] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [answeredQuestions, setAnsweredQuestions] = useState<
+    Map<number, string>
+  >(new Map());
+  const [submittingReply, setSubmittingReply] = useState(false);
+  const replyInputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Focus the reply input when it becomes active
+  useEffect(() => {
+    if (activeReplyIndex !== null) {
+      replyInputRef.current?.focus();
+    }
+  }, [activeReplyIndex]);
 
   const handleCopy = async () => {
-    const text = formatBriefingAsText(briefing);
+    const text = formatBriefingAsText(briefing, answeredQuestions);
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -30,8 +56,54 @@ export function CuratedNote({ briefing, onReset }: CuratedNoteProps) {
     }
   };
 
+  const handleReplyOpen = (index: number) => {
+    setActiveReplyIndex(index);
+    setReplyText('');
+  };
+
+  const handleReplyCancel = () => {
+    setActiveReplyIndex(null);
+    setReplyText('');
+  };
+
+  const handleReplySubmit = async (index: number) => {
+    const trimmed = replyText.trim();
+    if (!trimmed || submittingReply) return;
+
+    setSubmittingReply(true);
+    try {
+      const question = briefing.suggestedQuestions[index].question;
+      await onReplySubmit?.(index, question, trimmed);
+
+      setAnsweredQuestions((prev) => {
+        const next = new Map(prev);
+        next.set(index, trimmed);
+        return next;
+      });
+      setActiveReplyIndex(null);
+      setReplyText('');
+    } catch (err) {
+      console.error('Failed to save reply:', err);
+    } finally {
+      setSubmittingReply(false);
+    }
+  };
+
+  const handleReplyKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleReplySubmit(index);
+    }
+    if (e.key === 'Escape') {
+      handleReplyCancel();
+    }
+  };
+
   const hasClientQuestions = briefing.clientQuestions.length > 0;
   const hasSuggestedQuestions = briefing.suggestedQuestions.length > 0;
+  const allAnswered =
+    hasSuggestedQuestions &&
+    briefing.suggestedQuestions.every((_, i) => answeredQuestions.has(i));
 
   return (
     <div className='curated-note animate-fade-in-up'>
@@ -95,7 +167,7 @@ export function CuratedNote({ briefing, onReset }: CuratedNoteProps) {
         </div>
       )}
 
-      {/* Suggested Questions */}
+      {/* Suggested Questions with Quick Reply */}
       {hasSuggestedQuestions && (
         <div className='curated-note__section animate-fade-in-up'>
           <div className='curated-note__section-header'>
@@ -104,23 +176,98 @@ export function CuratedNote({ briefing, onReset }: CuratedNoteProps) {
             </div>
             <h3 className='curated-note__section-title'>Preguntas Sugeridas</h3>
             <span className='curated-note__section-count'>
-              {briefing.suggestedQuestions.length}
+              {answeredQuestions.size}/{briefing.suggestedQuestions.length}
             </span>
           </div>
+
+          {/* Progress hint */}
+          {answeredQuestions.size > 0 && !allAnswered && (
+            <p className='curated-note__reply-progress'>
+              ¡Bien! Respondiste {answeredQuestions.size} de{' '}
+              {briefing.suggestedQuestions.length} preguntas.
+            </p>
+          )}
+          {allAnswered && (
+            <p className='curated-note__reply-progress curated-note__reply-progress--done'>
+              ✨ ¡Todas las preguntas respondidas!
+            </p>
+          )}
+
           <ul className='curated-note__question-list'>
-            {briefing.suggestedQuestions.map((q, index) => (
-              <li
-                key={index}
-                className='curated-note__question-item glass-card'
-              >
-                <span className='curated-note__question-text'>
-                  {q.question}
-                </span>
-                <span className='curated-note__question-reason'>
-                  {q.reason}
-                </span>
-              </li>
-            ))}
+            {briefing.suggestedQuestions.map((q, index) => {
+              const isAnswered = answeredQuestions.has(index);
+              const isActive = activeReplyIndex === index;
+              const answer = answeredQuestions.get(index);
+
+              return (
+                <li
+                  key={index}
+                  className={`curated-note__question-item glass-card ${isAnswered ? 'curated-note__question-item--answered' : ''}`}
+                >
+                  <span className='curated-note__question-text'>
+                    {q.question}
+                  </span>
+                  <span className='curated-note__question-reason'>
+                    {q.reason}
+                  </span>
+
+                  {/* Answered state */}
+                  {isAnswered && (
+                    <div className='curated-note__reply-answer'>
+                      <Check size={14} className='curated-note__reply-check' />
+                      <span>{answer}</span>
+                    </div>
+                  )}
+
+                  {/* Reply button */}
+                  {!isAnswered && !isActive && (
+                    <button
+                      type='button'
+                      className='curated-note__reply-btn'
+                      onClick={() => handleReplyOpen(index)}
+                    >
+                      <MessageCircle size={14} />
+                      <span>Responder</span>
+                    </button>
+                  )}
+
+                  {/* Inline reply input */}
+                  {isActive && (
+                    <div className='curated-note__reply-input-area'>
+                      <textarea
+                        ref={replyInputRef}
+                        className='curated-note__reply-textarea'
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        onKeyDown={(e) => handleReplyKeyDown(e, index)}
+                        placeholder='Escribí tu respuesta...'
+                        rows={2}
+                        disabled={submittingReply}
+                      />
+                      <div className='curated-note__reply-actions'>
+                        <button
+                          type='button'
+                          className='curated-note__reply-cancel'
+                          onClick={handleReplyCancel}
+                          disabled={submittingReply}
+                        >
+                          <X size={14} />
+                        </button>
+                        <button
+                          type='button'
+                          className='curated-note__reply-send'
+                          onClick={() => handleReplySubmit(index)}
+                          disabled={!replyText.trim() || submittingReply}
+                        >
+                          <Send size={14} />
+                          <span>Enviar</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
@@ -157,7 +304,10 @@ export function CuratedNote({ briefing, onReset }: CuratedNoteProps) {
   );
 }
 
-function formatBriefingAsText(briefing: CuratedBriefing): string {
+function formatBriefingAsText(
+  briefing: CuratedBriefing,
+  answers: Map<number, string>,
+): string {
   const lines = [
     `📋 ${briefing.title}`,
     `${briefing.summary}`,
@@ -176,9 +326,14 @@ function formatBriefingAsText(briefing: CuratedBriefing): string {
 
   if (briefing.suggestedQuestions.length > 0) {
     lines.push('', '---', '', '💡 Preguntas Sugeridas:');
-    briefing.suggestedQuestions.forEach((q) => {
+    briefing.suggestedQuestions.forEach((q, index) => {
       lines.push(`• ${q.question}`);
-      lines.push(`  → ${q.reason}`);
+      const answer = answers.get(index);
+      if (answer) {
+        lines.push(`  ✅ ${answer}`);
+      } else {
+        lines.push(`  → ${q.reason}`);
+      }
     });
   }
 
