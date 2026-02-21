@@ -1,0 +1,75 @@
+/* ── Processing Indicator ── */
+
+.processing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-3xl) var(--space-xl);
+  text-align: center;
+}
+
+.processing__orb {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--color-accent-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.processing__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.processing__title {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.processing__subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Bouncing Dots */
+.processing__dots {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.processing__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent-primary);
+  animation: bounce-dot 1.4s ease-in-out infinite;
+}
+
+.processing__dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.processing__dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes bounce-dot {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

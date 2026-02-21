@@ -1,0 +1,287 @@
+.dashboard {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+/* Header */
+.dashboard__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-xl);
+}
+
+.dashboard__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.dashboard__logo {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: var(--shadow-glow);
+}
+
+.dashboard__title {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.dashboard__user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.dashboard__email {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.dashboard__logout {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dashboard__logout:hover {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+/* Toolbar */
+.dashboard__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-lg);
+}
+
+.dashboard__section-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.dashboard__create-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-full);
+  background: var(--color-accent-gradient);
+  border: none;
+  color: white;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-glow);
+}
+
+.dashboard__create-btn:hover {
+  background: var(--color-accent-gradient-hover);
+  box-shadow: var(--shadow-glow-lg);
+  transform: translateY(-1px);
+}
+
+/* Create Form */
+.dashboard__create-form {
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.dashboard__create-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard__create-form-header h3 {
+  font-family: var(--font-heading);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.dashboard__create-form-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: var(--space-xs);
+}
+
+.dashboard__input {
+  width: 100%;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  transition: border-color var(--transition-fast);
+}
+
+.dashboard__input:focus {
+  outline: none;
+  border-color: var(--color-accent-primary);
+}
+
+.dashboard__input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.dashboard__submit-btn {
+  align-self: flex-end;
+  padding: var(--space-sm) var(--space-xl);
+  border-radius: var(--radius-full);
+  background: var(--color-accent-gradient);
+  border: none;
+  color: white;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dashboard__submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Empty State */
+.dashboard__empty {
+  text-align: center;
+  padding: var(--space-3xl) var(--space-xl);
+  color: var(--color-text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+/* Links Grid */
+.dashboard__links-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.dashboard__link-card {
+  padding: var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.dashboard__link-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard__link-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.dashboard__link-context {
+  font-size: var(--text-xs);
+  color: var(--color-text-accent);
+  font-weight: 500;
+  display: inline-block;
+  margin-bottom: var(--space-xs);
+}
+
+.dashboard__link-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.dashboard__link-count {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.dashboard__link-date {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.dashboard__link-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.dashboard__link-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dashboard__link-btn:hover {
+  border-color: var(--color-border-active);
+  color: var(--color-text-primary);
+}
+
+.dashboard__link-btn--primary {
+  background: var(--color-accent-gradient);
+  border-color: transparent;
+  color: white;
+  padding: var(--space-sm) var(--space-md);
+}
+
+.dashboard__link-btn--primary:hover {
+  box-shadow: var(--shadow-glow);
+}
+
+@media (max-width: 600px) {
+  .dashboard__link-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .dashboard__link-actions {
+    align-self: flex-end;
+  }
+}
