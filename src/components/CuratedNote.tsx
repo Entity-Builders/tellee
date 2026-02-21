@@ -27,6 +27,8 @@ interface CuratedNoteProps {
   onClientQuestionAdd?: (question: string) => Promise<void>;
   /** Pre-loaded replies from DB (for dashboard/admin view) */
   initialReplies?: Map<number, string>;
+  /** 'client' = client-facing view, 'admin' = professional dashboard view */
+  viewMode?: 'client' | 'admin';
 }
 
 export function CuratedNote({
@@ -35,6 +37,7 @@ export function CuratedNote({
   onReplySubmit,
   onClientQuestionAdd,
   initialReplies,
+  viewMode = 'client',
 }: CuratedNoteProps) {
   const [copied, setCopied] = useState(false);
   const [activeReplyIndex, setActiveReplyIndex] = useState<number | null>(null);
@@ -201,10 +204,16 @@ export function CuratedNote({
               <HelpCircle size={16} />
             </div>
             <div className='curated-note__section-header-text'>
-              <h3 className='curated-note__section-title'>Tus Preguntas</h3>
-              <p className='curated-note__section-subtitle'>
-                Preguntas que dejaste en tu mensaje
-              </p>
+              <h3 className='curated-note__section-title'>
+                {viewMode === 'admin'
+                  ? 'Preguntas del Cliente'
+                  : 'Tus Preguntas'}
+              </h3>
+              {viewMode === 'client' && (
+                <p className='curated-note__section-subtitle'>
+                  Preguntas que dejaste en tu mensaje
+                </p>
+              )}
             </div>
             {allClientQuestions.length > 0 && (
               <span className='curated-note__section-count'>

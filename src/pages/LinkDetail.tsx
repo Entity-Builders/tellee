@@ -110,6 +110,7 @@ export function LinkDetail() {
                 briefing={selectedBriefing.curated_json as CuratedBriefing}
                 onReset={() => {}}
                 initialReplies={repliesMap}
+                viewMode='admin'
               />
             )}
           </main>
