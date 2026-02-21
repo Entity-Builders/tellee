@@ -605,3 +605,27 @@
   background: rgba(44, 44, 44, 0.05);
   color: var(--paper-text-secondary);
 }
+
+/* ── Admin Reply Label (shown in client view) ── */
+.curated-note__reply-label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.paper-theme .curated-note__reply-label {
+  color: var(--paper-accent);
+  font-family: var(--paper-font-serif);
+}
+
+.curated-note__reply-answer--admin {
+  border-left: 2px solid rgba(99, 102, 241, 0.4);
+}
+
+.paper-theme .curated-note__reply-answer--admin {
+  border-left-color: var(--paper-accent);
+}

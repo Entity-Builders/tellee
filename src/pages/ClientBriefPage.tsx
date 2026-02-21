@@ -10,6 +10,7 @@ import {
   addClientQuestionToBriefing,
 } from '../services/briefing-db-service';
 import { saveReply, getRepliesByBriefing } from '../services/reply-service';
+import { getClientQuestionRepliesByBriefing } from '../services/client-question-reply-service';
 import { getLinkBySlug, type BriefingLink } from '../services/link-service';
 import type { AppPhase, CuratedBriefing } from '../types';
 import './ClientBriefPage.css';
@@ -27,6 +28,8 @@ export function ClientBriefPage() {
   const [initialReplies, setInitialReplies] = useState<Map<number, string>>(
     new Map(),
   );
+  const [initialClientQuestionReplies, setInitialClientQuestionReplies] =
+    useState<Map<number, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -47,6 +50,12 @@ export function ClientBriefPage() {
           const map = new Map<number, string>();
           replies.forEach((r) => map.set(r.question_index, r.answer_text));
           setInitialReplies(map);
+
+          // Load client question replies (admin answers)
+          const cqReplies = await getClientQuestionRepliesByBriefing(latest.id);
+          const cqMap = new Map<number, string>();
+          cqReplies.forEach((r) => cqMap.set(r.question_index, r.answer_text));
+          setInitialClientQuestionReplies(cqMap);
 
           setPhase('result');
         }
@@ -103,6 +112,7 @@ export function ClientBriefPage() {
     setBriefing(null);
     setBriefingId(null);
     setInitialReplies(new Map());
+    setInitialClientQuestionReplies(new Map());
     setError(null);
     setIsFocused(false);
   };
@@ -167,6 +177,7 @@ export function ClientBriefPage() {
             onReplySubmit={handleReplySubmit}
             onClientQuestionAdd={handleClientQuestionAdd}
             initialReplies={initialReplies}
+            initialClientQuestionReplies={initialClientQuestionReplies}
           />
         )}
       </div>

@@ -7,6 +7,10 @@ import {
   type PersistedBriefing,
 } from '../services/briefing-db-service';
 import { getRepliesByBriefing } from '../services/reply-service';
+import {
+  saveClientQuestionReply,
+  getClientQuestionRepliesByBriefing,
+} from '../services/client-question-reply-service';
 import type { CuratedBriefing } from '../types';
 import './LinkDetail.css';
 
@@ -18,6 +22,9 @@ export function LinkDetail() {
   const [selectedBriefing, setSelectedBriefing] =
     useState<PersistedBriefing | null>(null);
   const [repliesMap, setRepliesMap] = useState<Map<number, string>>(new Map());
+  const [clientQuestionRepliesMap, setClientQuestionRepliesMap] = useState<
+    Map<number, string>
+  >(new Map());
 
   useEffect(() => {
     if (!linkId) return;
@@ -34,14 +41,38 @@ export function LinkDetail() {
   useEffect(() => {
     if (!selectedBriefing) {
       setRepliesMap(new Map());
+      setClientQuestionRepliesMap(new Map());
       return;
     }
+
+    // Load suggested question replies
     getRepliesByBriefing(selectedBriefing.id).then((replies) => {
       const map = new Map<number, string>();
       replies.forEach((r) => map.set(r.question_index, r.answer_text));
       setRepliesMap(map);
     });
+
+    // Load client question replies
+    getClientQuestionRepliesByBriefing(selectedBriefing.id).then((replies) => {
+      const map = new Map<number, string>();
+      replies.forEach((r) => map.set(r.question_index, r.answer_text));
+      setClientQuestionRepliesMap(map);
+    });
   }, [selectedBriefing?.id]);
+
+  const handleClientQuestionReplySubmit = async (
+    questionIndex: number,
+    question: string,
+    answer: string,
+  ) => {
+    if (!selectedBriefing) return;
+    await saveClientQuestionReply(
+      selectedBriefing.id,
+      questionIndex,
+      question,
+      answer,
+    );
+  };
 
   if (loading) {
     return (
@@ -110,6 +141,8 @@ export function LinkDetail() {
                 briefing={selectedBriefing.curated_json as CuratedBriefing}
                 onReset={() => {}}
                 initialReplies={repliesMap}
+                initialClientQuestionReplies={clientQuestionRepliesMap}
+                onClientQuestionReplySubmit={handleClientQuestionReplySubmit}
                 viewMode='admin'
               />
             )}

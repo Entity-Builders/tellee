@@ -25,8 +25,16 @@ interface CuratedNoteProps {
   ) => void;
   /** Callback to persist a manually-added client question */
   onClientQuestionAdd?: (question: string) => Promise<void>;
-  /** Pre-loaded replies from DB (for dashboard/admin view) */
+  /** Callback to persist an admin reply to a client question */
+  onClientQuestionReplySubmit?: (
+    questionIndex: number,
+    question: string,
+    answer: string,
+  ) => void;
+  /** Pre-loaded replies from DB (for suggested questions) */
   initialReplies?: Map<number, string>;
+  /** Pre-loaded admin replies to client questions */
+  initialClientQuestionReplies?: Map<number, string>;
   /** 'client' = client-facing view, 'admin' = professional dashboard view */
   viewMode?: 'client' | 'admin';
 }
@@ -36,7 +44,9 @@ export function CuratedNote({
   onReset,
   onReplySubmit,
   onClientQuestionAdd,
+  onClientQuestionReplySubmit,
   initialReplies,
+  initialClientQuestionReplies,
   viewMode = 'client',
 }: CuratedNoteProps) {
   const [copied, setCopied] = useState(false);
@@ -47,6 +57,17 @@ export function CuratedNote({
   >(initialReplies ?? new Map());
   const [submittingReply, setSubmittingReply] = useState(false);
   const replyInputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Client question reply state (admin answering client questions)
+  const [activeClientReplyIndex, setActiveClientReplyIndex] = useState<
+    number | null
+  >(null);
+  const [clientReplyText, setClientReplyText] = useState('');
+  const [answeredClientQuestions, setAnsweredClientQuestions] = useState<
+    Map<number, string>
+  >(initialClientQuestionReplies ?? new Map());
+  const [submittingClientReply, setSubmittingClientReply] = useState(false);
+  const clientReplyInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Manual question add state
   const [manualQuestions, setManualQuestions] = useState<string[]>([]);
@@ -61,6 +82,20 @@ export function CuratedNote({
       setAnsweredQuestions(initialReplies);
     }
   }, [initialReplies]);
+
+  // Sync client question replies
+  useEffect(() => {
+    if (initialClientQuestionReplies && initialClientQuestionReplies.size > 0) {
+      setAnsweredClientQuestions(initialClientQuestionReplies);
+    }
+  }, [initialClientQuestionReplies]);
+
+  // Focus client reply input when active
+  useEffect(() => {
+    if (activeClientReplyIndex !== null) {
+      clientReplyInputRef.current?.focus();
+    }
+  }, [activeClientReplyIndex]);
 
   // Focus the reply input when it becomes active
   useEffect(() => {
@@ -127,6 +162,50 @@ export function CuratedNote({
     }
     if (e.key === 'Escape') {
       handleReplyCancel();
+    }
+  };
+
+  // ── Client Question Reply Handlers (admin answers client questions) ──
+  const handleClientReplyOpen = (index: number) => {
+    setActiveClientReplyIndex(index);
+    setClientReplyText('');
+  };
+
+  const handleClientReplyCancel = () => {
+    setActiveClientReplyIndex(null);
+    setClientReplyText('');
+  };
+
+  const handleClientReplySubmit = async (index: number) => {
+    const trimmed = clientReplyText.trim();
+    if (!trimmed || submittingClientReply) return;
+
+    setSubmittingClientReply(true);
+    try {
+      const question = allClientQuestions[index].question;
+      await onClientQuestionReplySubmit?.(index, question, trimmed);
+
+      setAnsweredClientQuestions((prev) => {
+        const next = new Map(prev);
+        next.set(index, trimmed);
+        return next;
+      });
+      setActiveClientReplyIndex(null);
+      setClientReplyText('');
+    } catch (err) {
+      console.error('Failed to save client question reply:', err);
+    } finally {
+      setSubmittingClientReply(false);
+    }
+  };
+
+  const handleClientReplyKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleClientReplySubmit(index);
+    }
+    if (e.key === 'Escape') {
+      handleClientReplyCancel();
     }
   };
 
@@ -222,22 +301,98 @@ export function CuratedNote({
             )}
           </div>
           <ul className='curated-note__question-list'>
-            {allClientQuestions.map((q, index) => (
-              <li
-                key={index}
-                className='curated-note__question-item glass-card'
-              >
-                <span className='curated-note__question-text'>
-                  {q.question}
-                </span>
-                {q.context && (
-                  <span className='curated-note__question-context'>
-                    <Quote size={12} />
-                    {q.context}
+            {allClientQuestions.map((q, index) => {
+              const isClientAnswered = answeredClientQuestions.has(index);
+              const isClientActive = activeClientReplyIndex === index;
+              const clientAnswer = answeredClientQuestions.get(index);
+
+              return (
+                <li
+                  key={index}
+                  className={`curated-note__question-item glass-card ${isClientAnswered ? 'curated-note__question-item--answered' : ''}`}
+                >
+                  <span className='curated-note__question-text'>
+                    {q.question}
                   </span>
-                )}
-              </li>
-            ))}
+                  {q.context && (
+                    <span className='curated-note__question-context'>
+                      <Quote size={12} />
+                      {q.context}
+                    </span>
+                  )}
+
+                  {/* Admin reply to client question — answered state */}
+                  {isClientAnswered && (
+                    <div className='curated-note__reply-answer curated-note__reply-answer--admin'>
+                      <Check size={14} className='curated-note__reply-check' />
+                      <div>
+                        {viewMode === 'client' && (
+                          <span className='curated-note__reply-label'>
+                            Respuesta del profesional
+                          </span>
+                        )}
+                        <span>{clientAnswer}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Admin: Reply button (only in admin mode, not answered, not active) */}
+                  {viewMode === 'admin' &&
+                    !isClientAnswered &&
+                    !isClientActive && (
+                      <button
+                        type='button'
+                        className='curated-note__reply-btn'
+                        onClick={() => handleClientReplyOpen(index)}
+                      >
+                        <MessageCircle size={14} />
+                        <span>Responder</span>
+                      </button>
+                    )}
+
+                  {/* Admin: Inline reply input */}
+                  {isClientActive && (
+                    <div className='curated-note__reply-input-area'>
+                      <textarea
+                        ref={clientReplyInputRef}
+                        className='curated-note__reply-textarea'
+                        value={clientReplyText}
+                        onChange={(e) => setClientReplyText(e.target.value)}
+                        onKeyDown={(e) => handleClientReplyKeyDown(e, index)}
+                        onBlur={() => {
+                          if (clientReplyText.trim())
+                            handleClientReplySubmit(index);
+                        }}
+                        placeholder='Escribí tu respuesta...'
+                        rows={2}
+                        disabled={submittingClientReply}
+                      />
+                      <div className='curated-note__reply-actions'>
+                        <button
+                          type='button'
+                          className='curated-note__reply-cancel'
+                          onClick={handleClientReplyCancel}
+                          disabled={submittingClientReply}
+                        >
+                          <X size={14} />
+                        </button>
+                        <button
+                          type='button'
+                          className='curated-note__reply-send'
+                          onClick={() => handleClientReplySubmit(index)}
+                          disabled={
+                            !clientReplyText.trim() || submittingClientReply
+                          }
+                        >
+                          <Send size={14} />
+                          <span>Enviar</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
 
           {/* Add question inline */}
