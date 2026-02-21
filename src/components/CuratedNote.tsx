@@ -22,19 +22,22 @@ interface CuratedNoteProps {
     question: string,
     answer: string,
   ) => void;
+  /** Pre-loaded replies from DB (for dashboard/admin view) */
+  initialReplies?: Map<number, string>;
 }
 
 export function CuratedNote({
   briefing,
   onReset,
   onReplySubmit,
+  initialReplies,
 }: CuratedNoteProps) {
   const [copied, setCopied] = useState(false);
   const [activeReplyIndex, setActiveReplyIndex] = useState<number | null>(null);
   const [replyText, setReplyText] = useState('');
   const [answeredQuestions, setAnsweredQuestions] = useState<
     Map<number, string>
-  >(new Map());
+  >(initialReplies ?? new Map());
   const [submittingReply, setSubmittingReply] = useState(false);
   const replyInputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -240,6 +243,9 @@ export function CuratedNote({
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
                         onKeyDown={(e) => handleReplyKeyDown(e, index)}
+                        onBlur={() => {
+                          if (replyText.trim()) handleReplySubmit(index);
+                        }}
                         placeholder='Escribí tu respuesta...'
                         rows={2}
                         disabled={submittingReply}

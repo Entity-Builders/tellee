@@ -6,6 +6,7 @@ import {
   getBriefingsByLink,
   type PersistedBriefing,
 } from '../services/briefing-db-service';
+import { getRepliesByBriefing } from '../services/reply-service';
 import type { CuratedBriefing } from '../types';
 import './LinkDetail.css';
 
@@ -16,6 +17,7 @@ export function LinkDetail() {
   const [loading, setLoading] = useState(true);
   const [selectedBriefing, setSelectedBriefing] =
     useState<PersistedBriefing | null>(null);
+  const [repliesMap, setRepliesMap] = useState<Map<number, string>>(new Map());
 
   useEffect(() => {
     if (!linkId) return;
@@ -27,6 +29,19 @@ export function LinkDetail() {
       setLoading(false);
     });
   }, [linkId]);
+
+  // Fetch replies when selected briefing changes
+  useEffect(() => {
+    if (!selectedBriefing) {
+      setRepliesMap(new Map());
+      return;
+    }
+    getRepliesByBriefing(selectedBriefing.id).then((replies) => {
+      const map = new Map<number, string>();
+      replies.forEach((r) => map.set(r.question_index, r.answer_text));
+      setRepliesMap(map);
+    });
+  }, [selectedBriefing?.id]);
 
   if (loading) {
     return (
@@ -94,6 +109,7 @@ export function LinkDetail() {
               <CuratedNote
                 briefing={selectedBriefing.curated_json as CuratedBriefing}
                 onReset={() => {}}
+                initialReplies={repliesMap}
               />
             )}
           </main>
