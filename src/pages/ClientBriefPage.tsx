@@ -167,6 +167,45 @@ export function ClientBriefPage() {
     const saved = await saveBriefing(link.id, text, result);
     setBriefingId(saved.id);
 
+    // Persist follow-up answers as replies to suggestedQuestions
+    if (answers && answers.length > 0 && result.suggestedQuestions.length > 0) {
+      const repliesMap = new Map<number, string>();
+
+      for (const answer of answers) {
+        // Find the best matching suggestedQuestion by text
+        const matchIndex = result.suggestedQuestions.findIndex(
+          (sq) =>
+            sq.question
+              .toLowerCase()
+              .includes(answer.question.toLowerCase().slice(0, 20)) ||
+            answer.question
+              .toLowerCase()
+              .includes(sq.question.toLowerCase().slice(0, 20)),
+        );
+
+        // Use the match index if found, otherwise append to the end
+        const idx =
+          matchIndex >= 0
+            ? matchIndex
+            : result.suggestedQuestions.length + repliesMap.size;
+        const questionText =
+          matchIndex >= 0
+            ? result.suggestedQuestions[matchIndex].question
+            : answer.question;
+
+        if (!repliesMap.has(idx)) {
+          repliesMap.set(idx, answer.answer);
+          try {
+            await saveReply(saved.id, idx, questionText, answer.answer);
+          } catch {
+            // Non-critical — don't break the flow
+          }
+        }
+      }
+
+      setInitialReplies(repliesMap);
+    }
+
     setPhase('result');
   };
 
