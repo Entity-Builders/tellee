@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { BriefingInput } from '../components/BriefingInput';
+import { BriefingChat } from '../components/BriefingChat';
 import { ProcessingIndicator } from '../components/ProcessingIndicator';
 import { CuratedNote } from '../components/CuratedNote';
-import { curateBriefing } from '../services/briefing-service';
+import {
+  curateBriefing,
+  generateFollowUpQuestions,
+} from '../services/briefing-service';
 import {
   saveBriefing,
   getBriefingsByLink,
@@ -12,7 +16,13 @@ import {
 import { saveReply, getRepliesByBriefing } from '../services/reply-service';
 import { getClientQuestionRepliesByBriefing } from '../services/client-question-reply-service';
 import { getLinkBySlug, type BriefingLink } from '../services/link-service';
-import type { AppPhase, CuratedBriefing } from '../types';
+import type {
+  AppPhase,
+  CuratedBriefing,
+  FollowUpQuestion,
+  FollowUpAnswer,
+  BriefingAttachment,
+} from '../types';
 import './ClientBriefPage.css';
 
 export function ClientBriefPage() {
@@ -31,6 +41,15 @@ export function ClientBriefPage() {
   const [initialClientQuestionReplies, setInitialClientQuestionReplies] =
     useState<Map<number, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
+
+  // Follow-up state
+  const [clientText, setClientText] = useState('');
+  const [_clientAttachments, setClientAttachments] = useState<
+    BriefingAttachment[]
+  >([]);
+  const [followUpQuestions, setFollowUpQuestions] = useState<
+    FollowUpQuestion[]
+  >([]);
 
   useEffect(() => {
     if (!slug) return;
@@ -66,23 +85,31 @@ export function ClientBriefPage() {
     });
   }, [slug]);
 
-  const handleSubmit = async (text: string) => {
+  // ── Phase 1: Initial submission → generate follow-up questions ──
+  const handleSubmit = async (
+    text: string,
+    attachments: BriefingAttachment[],
+  ) => {
     if (!link) return;
+    setClientText(text);
+    setClientAttachments(attachments);
     setPhase('processing');
     setError(null);
 
     try {
-      const result = await curateBriefing(
+      // Generate follow-up questions
+      const questions = await generateFollowUpQuestions(
         text,
         link.profession_context ?? undefined,
       );
-      setBriefing(result);
 
-      // Save to database and capture the briefing ID for replies
-      const saved = await saveBriefing(link.id, text, result);
-      setBriefingId(saved.id);
-
-      setPhase('result');
+      if (questions.length > 0) {
+        setFollowUpQuestions(questions);
+        setPhase('follow-up');
+      } else {
+        // No follow-up questions — go straight to final curation
+        await generateFinalBriefing(text);
+      }
     } catch (err) {
       const message =
         err instanceof Error
@@ -91,6 +118,56 @@ export function ClientBriefPage() {
       setError(message);
       setPhase('error');
     }
+  };
+
+  // ── Phase 2a: User answered follow-up → generate final brief ──
+  const handleFollowUpComplete = async (answers: FollowUpAnswer[]) => {
+    setPhase('processing-final');
+    try {
+      await generateFinalBriefing(clientText, answers);
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Algo salió mal. Intenta de nuevo.';
+      setError(message);
+      setPhase('error');
+    }
+  };
+
+  // ── Phase 2b: User skipped follow-up → generate without answers ──
+  const handleFollowUpSkip = async () => {
+    setPhase('processing-final');
+    try {
+      await generateFinalBriefing(clientText);
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Algo salió mal. Intenta de nuevo.';
+      setError(message);
+      setPhase('error');
+    }
+  };
+
+  // ── Shared: Generate the final CuratedBriefing ──
+  const generateFinalBriefing = async (
+    text: string,
+    answers?: FollowUpAnswer[],
+  ) => {
+    if (!link) return;
+    const result = await curateBriefing(
+      text,
+      link.profession_context ?? undefined,
+      answers,
+    );
+    setBriefing(result);
+
+    // Save to database
+    const saved = await saveBriefing(link.id, text, result);
+    setBriefingId(saved.id);
+
+    setPhase('result');
   };
 
   const handleReplySubmit = async (
@@ -113,6 +190,9 @@ export function ClientBriefPage() {
     setBriefingId(null);
     setInitialReplies(new Map());
     setInitialClientQuestionReplies(new Map());
+    setFollowUpQuestions([]);
+    setClientText('');
+    setClientAttachments([]);
     setError(null);
     setIsFocused(false);
   };
@@ -149,13 +229,15 @@ export function ClientBriefPage() {
         {/* Title — reveals with animation on focus */}
         <h1 className='client-brief-page__title'>{link?.title}</h1>
 
-        {/* Main content */}
+        {/* Phase: idle / error — show briefing input */}
         {(phase === 'idle' || phase === 'error') && (
           <>
             <BriefingInput
               onSubmit={handleSubmit}
               isProcessing={false}
               onFocusChange={setIsFocused}
+              professionContext={link?.profession_context ?? undefined}
+              linkTitle={link?.title}
             />
             {error && (
               <div className='error-banner'>
@@ -168,8 +250,24 @@ export function ClientBriefPage() {
           </>
         )}
 
+        {/* Phase: processing — initial AI analysis */}
         {phase === 'processing' && <ProcessingIndicator />}
 
+        {/* Phase: follow-up — conversational questions */}
+        {phase === 'follow-up' && (
+          <BriefingChat
+            originalText={clientText}
+            questions={followUpQuestions}
+            onComplete={handleFollowUpComplete}
+            onSkip={handleFollowUpSkip}
+            isProcessing={false}
+          />
+        )}
+
+        {/* Phase: processing-final — generating final brief */}
+        {phase === 'processing-final' && <ProcessingIndicator />}
+
+        {/* Phase: result — show curated note */}
         {phase === 'result' && briefing && (
           <CuratedNote
             briefing={briefing}

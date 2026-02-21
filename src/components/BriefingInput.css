@@ -1,17 +1,53 @@
 /* ============================================================
-   BriefingInput — Paper Theme (borderless typewriter)
+   BriefingInput — Paper Theme (assisted typewriter)
    ============================================================ */
 
 .briefing-input {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* ── Drag-over state ── */
+.briefing-input--dragging {
+  border-radius: var(--radius-md);
+}
+
+.briefing-input--dragging .briefing-input__field {
+  border: 2px dashed var(--paper-accent);
+  border-radius: var(--radius-md);
+  background: rgba(92, 83, 71, 0.04);
+}
+
+/* ── Dynamic greeting ── */
+.briefing-input__greeting {
+  margin-bottom: var(--space-sm);
+  animation: fadeInUp 0.6s ease both;
+}
+
+.briefing-input__greeting-title {
+  font-family: var(--paper-font-serif);
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--paper-text);
+  margin-bottom: var(--space-xs);
+  letter-spacing: -0.01em;
+}
+
+.briefing-input__greeting-subtitle {
+  font-family: var(--paper-font-serif);
+  font-size: var(--text-sm);
+  color: var(--paper-text-muted);
+  line-height: 1.5;
 }
 
 /* ── Textarea field — invisible container ── */
 .briefing-input__field {
   display: flex;
   flex-direction: column;
+  transition: all 0.25s ease;
 }
 
 .briefing-input__textarea {
@@ -24,19 +60,40 @@
   outline: none;
   color: var(--paper-text);
   font-family: var(--paper-font-serif);
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   line-height: 1.8;
   letter-spacing: 0.01em;
   caret-color: var(--paper-cursor-color);
 }
 
 .briefing-input__textarea::placeholder {
-  color: transparent;
+  color: var(--paper-text-muted);
+  opacity: 0.5;
+  font-style: italic;
 }
 
 .briefing-input__textarea:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ── Drop overlay ── */
+.briefing-input__drop-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  background: rgba(245, 240, 232, 0.92);
+  border: 2px dashed var(--paper-accent);
+  border-radius: var(--radius-md);
+  color: var(--paper-accent);
+  font-family: var(--paper-font-serif);
+  font-size: var(--text-sm);
+  z-index: 10;
+  animation: fadeIn 0.2s ease;
 }
 
 /* ── Blinking cursor overlay (shown when textarea is empty & focused) ── */
@@ -50,11 +107,80 @@
   pointer-events: none;
 }
 
-/* ── Footer (submit area) ── */
+/* ── Attachments area ── */
+.briefing-input__attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+  animation: fadeInUp 0.3s ease both;
+}
+
+.briefing-input__attachment {
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--paper-border);
+  background: var(--paper-bg-subtle);
+  transition: all 0.2s ease;
+}
+
+.briefing-input__attachment:hover {
+  border-color: var(--paper-accent);
+  box-shadow: 0 2px 8px rgba(44, 44, 44, 0.08);
+}
+
+.briefing-input__attachment-img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  display: block;
+}
+
+.briefing-input__attachment-file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--paper-font-serif);
+  font-size: 0.75rem;
+  color: var(--paper-text-secondary);
+  max-width: 160px;
+}
+
+.briefing-input__attachment-file span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.briefing-input__attachment-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(44, 44, 44, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.briefing-input__attachment:hover .briefing-input__attachment-remove {
+  opacity: 1;
+}
+
+/* ── Footer (attach + submit) ── */
 .briefing-input__footer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   padding-top: var(--space-md);
   opacity: 0;
   transform: translateY(8px);
@@ -68,6 +194,41 @@
   opacity: 1;
   transform: translateY(0);
   pointer-events: all;
+}
+
+.briefing-input__footer-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.briefing-input__attach-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--paper-border);
+  border-radius: 50%;
+  color: var(--paper-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.briefing-input__attach-btn:hover {
+  background: var(--paper-bg-subtle);
+  color: var(--paper-accent);
+  border-color: var(--paper-accent);
+}
+
+.briefing-input__attach-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.briefing-input__file-input {
+  display: none;
 }
 
 /* ── Submit Button — warm charcoal pill ── */
@@ -130,4 +291,25 @@
   border: 1px solid var(--paper-border);
   font-family: var(--font-body);
   font-size: 0.7rem;
+}
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

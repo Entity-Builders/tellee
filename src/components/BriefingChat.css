@@ -1,0 +1,241 @@
+/* ============================================================
+   BriefingChat — Paper Theme Conversational Follow-up
+   ============================================================ */
+
+.briefing-chat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  animation: fadeInUp 0.5s ease both;
+}
+
+/* ── Messages ── */
+.briefing-chat__message {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.briefing-chat__message--client {
+  align-items: flex-end;
+}
+
+.briefing-chat__message--ai {
+  align-items: flex-start;
+}
+
+.briefing-chat__label {
+  font-family: var(--paper-font-serif);
+  font-size: 0.7rem;
+  color: var(--paper-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0 var(--space-sm);
+}
+
+/* ── Bubbles ── */
+.briefing-chat__bubble {
+  max-width: 85%;
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  font-family: var(--paper-font-serif);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.briefing-chat__bubble--client {
+  background: var(--paper-accent);
+  color: var(--paper-bg);
+  border-bottom-right-radius: 4px;
+}
+
+.briefing-chat__bubble--ai {
+  background: var(--paper-bg-subtle);
+  color: var(--paper-text);
+  border-bottom-left-radius: 4px;
+  max-width: 100%;
+}
+
+/* ── AI header ── */
+.briefing-chat__ai-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--paper-border);
+  font-weight: 500;
+  color: var(--paper-accent);
+}
+
+/* ── Questions list ── */
+.briefing-chat__questions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.briefing-chat__question {
+  opacity: 0.4;
+  transition: all 0.3s ease;
+  padding: var(--space-sm) 0;
+}
+
+.briefing-chat__question--active {
+  opacity: 1;
+  animation: fadeInUp 0.3s ease both;
+}
+
+.briefing-chat__question--answered {
+  opacity: 0.85;
+}
+
+.briefing-chat__question-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.briefing-chat__question-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--paper-accent);
+  color: var(--paper-bg);
+  font-size: 0.7rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.briefing-chat__question-text {
+  font-size: var(--text-sm);
+  color: var(--paper-text);
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.briefing-chat__question-reason {
+  font-size: 0.75rem;
+  color: var(--paper-text-muted);
+  font-style: italic;
+  margin-top: 2px;
+  margin-left: 30px;
+}
+
+/* ── Answer area ── */
+.briefing-chat__answer-area {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+  margin-left: 30px;
+  animation: fadeInUp 0.2s ease both;
+}
+
+.briefing-chat__answer-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--paper-border);
+  border-radius: var(--radius-sm);
+  background: var(--paper-bg);
+  font-family: var(--paper-font-serif);
+  font-size: var(--text-sm);
+  color: var(--paper-text);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.briefing-chat__answer-input:focus {
+  border-color: var(--paper-accent);
+}
+
+.briefing-chat__answer-input::placeholder {
+  color: var(--paper-text-muted);
+  opacity: 0.5;
+}
+
+.briefing-chat__next-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--paper-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--paper-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.briefing-chat__next-btn:hover {
+  background: var(--paper-accent);
+  color: var(--paper-bg);
+  border-color: var(--paper-accent);
+}
+
+/* ── Actions ── */
+.briefing-chat__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--paper-border);
+  animation: fadeInUp 0.4s 0.3s ease both;
+}
+
+.briefing-chat__skip-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--paper-border);
+  border-radius: var(--radius-full);
+  color: var(--paper-text-muted);
+  font-family: var(--paper-font-serif);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.briefing-chat__skip-btn:hover {
+  border-color: var(--paper-text-secondary);
+  color: var(--paper-text-secondary);
+}
+
+.briefing-chat__finish-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 10px 24px;
+  background: var(--paper-accent);
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--paper-bg);
+  font-family: var(--paper-font-serif);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.briefing-chat__finish-btn:hover {
+  background: var(--paper-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(44, 44, 44, 0.15);
+}
+
+.briefing-chat__finish-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.briefing-chat__spinner {
+  animation: spin 1.5s linear infinite;
+}

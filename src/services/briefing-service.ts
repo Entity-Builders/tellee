@@ -4,6 +4,8 @@ import type {
   BriefingField,
   ClientQuestion,
   SuggestedQuestion,
+  FollowUpQuestion,
+  FollowUpAnswer,
 } from '../types';
 
 const SYSTEM_PROMPT = `Eres un asistente experto en convertir descripciones informales de clientes en especificaciones técnicas estructuradas para profesionales.
@@ -67,9 +69,93 @@ Output:
   ]
 }`;
 
+// ── Follow-up question generation ──
+
+const FOLLOW_UP_PROMPT = `Eres un asistente que analiza pedidos de clientes y genera preguntas de seguimiento para obtener más detalles antes de crear un brief completo.
+
+Tu tarea:
+1. Leer el texto del cliente
+2. Identificar información FALTANTE o AMBIGUA
+3. Generar 3-5 preguntas concretas y relevantes que ayuden a completar el brief
+
+REGLAS:
+- Máximo 5 preguntas, mínimo 2
+- Preguntas cortas y directas
+- Incluye una razón breve de por qué esa info es importante
+- Responde en el idioma del texto del cliente
+- No preguntes cosas que ya quedaron claras en el texto
+- Formato JSON válido (sin markdown)
+
+FORMATO:
+{
+  "questions": [
+    { "id": "q1", "question": "La pregunta", "reason": "Por qué importa" }
+  ]
+}`;
+
+export async function generateFollowUpQuestions(
+  clientInput: string,
+  professionContext?: string,
+): Promise<FollowUpQuestion[]> {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+    return []; // Fallback: skip follow-up if no API key
+  }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+  const contextNote = professionContext
+    ? `\n\nCONTEXTO DEL PROFESIONAL: ${professionContext}.`
+    : '';
+
+  try {
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              text: `${FOLLOW_UP_PROMPT}${contextNote}\n\n--- TEXTO DEL CLIENTE ---\n${clientInput}\n--- FIN ---\n\nGenera las preguntas de seguimiento:`,
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.4,
+        maxOutputTokens: 1024,
+        responseMimeType: 'application/json',
+      },
+    });
+
+    const responseText = result.response.text();
+    let parsed: { questions: FollowUpQuestion[] };
+
+    try {
+      parsed = JSON.parse(responseText);
+    } catch {
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsed = JSON.parse(jsonMatch[0]);
+      } else {
+        return [];
+      }
+    }
+
+    return parsed.questions ?? [];
+  } catch {
+    // If follow-up generation fails, just skip it
+    return [];
+  }
+}
+
+// ── Main briefing curation ──
+
 export async function curateBriefing(
   clientInput: string,
   professionContext?: string,
+  followUpAnswers?: FollowUpAnswer[],
 ): Promise<CuratedBriefing> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -86,13 +172,24 @@ export async function curateBriefing(
     ? `\n\nCONTEXTO DEL PROFESIONAL: ${professionContext}. Ten en cuenta este contexto al extraer y nombrar los campos.`
     : '';
 
+  // Build follow-up answers section if available
+  let followUpSection = '';
+  if (followUpAnswers && followUpAnswers.length > 0) {
+    followUpSection =
+      '\n\n--- RESPUESTAS ADICIONALES DEL CLIENTE ---\n' +
+      followUpAnswers
+        .map((a) => `Pregunta: ${a.question}\nRespuesta: ${a.answer}`)
+        .join('\n\n') +
+      '\n--- FIN RESPUESTAS ---\n\nIMPORTANTE: Incorpora toda la información de las respuestas adicionales en los campos del brief. No la ignores.';
+  }
+
   const result = await model.generateContent({
     contents: [
       {
         role: 'user',
         parts: [
           {
-            text: `${SYSTEM_PROMPT}${contextNote}\n\n--- TEXTO DEL CLIENTE ---\n${clientInput}\n--- FIN ---\n\nGenera el JSON de la Nota Curada:`,
+            text: `${SYSTEM_PROMPT}${contextNote}\n\n--- TEXTO DEL CLIENTE ---\n${clientInput}\n--- FIN ---${followUpSection}\n\nGenera el JSON de la Nota Curada:`,
           },
         ],
       },
