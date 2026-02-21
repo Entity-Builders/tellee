@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, FileText, Calendar } from 'lucide-react';
 import { CuratedNote } from '../components/CuratedNote';
+import { ProjectDescription } from '../components/ProjectDescription';
 import {
   getBriefingsByLink,
   type PersistedBriefing,
@@ -137,14 +138,21 @@ export function LinkDetail() {
           {/* Main: selected briefing */}
           <main className='link-detail__main'>
             {selectedBriefing && (
-              <CuratedNote
-                briefing={selectedBriefing.curated_json as CuratedBriefing}
-                onReset={() => {}}
-                initialReplies={repliesMap}
-                initialClientQuestionReplies={clientQuestionRepliesMap}
-                onClientQuestionReplySubmit={handleClientQuestionReplySubmit}
-                viewMode='admin'
-              />
+              <>
+                <CuratedNote
+                  briefing={selectedBriefing.curated_json as CuratedBriefing}
+                  onReset={() => {}}
+                  initialReplies={repliesMap}
+                  initialClientQuestionReplies={clientQuestionRepliesMap}
+                  onClientQuestionReplySubmit={handleClientQuestionReplySubmit}
+                  viewMode='admin'
+                />
+                <ProjectDescription
+                  briefing={selectedBriefing.curated_json as CuratedBriefing}
+                  suggestedQuestionReplies={repliesMap}
+                  clientQuestionReplies={clientQuestionRepliesMap}
+                />
+              </>
             )}
           </main>
         </div>
