@@ -7,6 +7,7 @@ import { curateBriefing } from '../services/briefing-service';
 import {
   saveBriefing,
   getBriefingsByLink,
+  addClientQuestionToBriefing,
 } from '../services/briefing-db-service';
 import { saveReply, getRepliesByBriefing } from '../services/reply-service';
 import { getLinkBySlug, type BriefingLink } from '../services/link-service';
@@ -92,6 +93,11 @@ export function ClientBriefPage() {
     await saveReply(briefingId, questionIndex, question, answer);
   };
 
+  const handleClientQuestionAdd = async (question: string) => {
+    if (!briefingId) return;
+    await addClientQuestionToBriefing(briefingId, question);
+  };
+
   const handleReset = () => {
     setPhase('idle');
     setBriefing(null);
@@ -159,6 +165,7 @@ export function ClientBriefPage() {
             briefing={briefing}
             onReset={handleReset}
             onReplySubmit={handleReplySubmit}
+            onClientQuestionAdd={handleClientQuestionAdd}
             initialReplies={initialReplies}
           />
         )}

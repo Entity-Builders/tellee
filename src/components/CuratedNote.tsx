@@ -10,6 +10,7 @@ import {
   MessageCircle,
   Send,
   X,
+  Plus,
 } from 'lucide-react';
 import type { CuratedBriefing } from '../types';
 import './CuratedNote.css';
@@ -22,6 +23,8 @@ interface CuratedNoteProps {
     question: string,
     answer: string,
   ) => void;
+  /** Callback to persist a manually-added client question */
+  onClientQuestionAdd?: (question: string) => Promise<void>;
   /** Pre-loaded replies from DB (for dashboard/admin view) */
   initialReplies?: Map<number, string>;
 }
@@ -30,6 +33,7 @@ export function CuratedNote({
   briefing,
   onReset,
   onReplySubmit,
+  onClientQuestionAdd,
   initialReplies,
 }: CuratedNoteProps) {
   const [copied, setCopied] = useState(false);
@@ -41,12 +45,33 @@ export function CuratedNote({
   const [submittingReply, setSubmittingReply] = useState(false);
   const replyInputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Manual question add state
+  const [manualQuestions, setManualQuestions] = useState<string[]>([]);
+  const [showAddQuestion, setShowAddQuestion] = useState(false);
+  const [newQuestionText, setNewQuestionText] = useState('');
+  const [submittingQuestion, setSubmittingQuestion] = useState(false);
+  const addQuestionRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sync answeredQuestions when initialReplies arrives asynchronously
+  useEffect(() => {
+    if (initialReplies && initialReplies.size > 0) {
+      setAnsweredQuestions(initialReplies);
+    }
+  }, [initialReplies]);
+
   // Focus the reply input when it becomes active
   useEffect(() => {
     if (activeReplyIndex !== null) {
       replyInputRef.current?.focus();
     }
   }, [activeReplyIndex]);
+
+  // Focus the add-question textarea when it opens
+  useEffect(() => {
+    if (showAddQuestion) {
+      addQuestionRef.current?.focus();
+    }
+  }, [showAddQuestion]);
 
   const handleCopy = async () => {
     const text = formatBriefingAsText(briefing, answeredQuestions);
@@ -102,7 +127,40 @@ export function CuratedNote({
     }
   };
 
-  const hasClientQuestions = briefing.clientQuestions.length > 0;
+  const handleAddQuestion = async () => {
+    const trimmed = newQuestionText.trim();
+    if (!trimmed || submittingQuestion) return;
+
+    setSubmittingQuestion(true);
+    try {
+      await onClientQuestionAdd?.(trimmed);
+      setManualQuestions((prev) => [...prev, trimmed]);
+      setNewQuestionText('');
+      setShowAddQuestion(false);
+    } catch (err) {
+      console.error('Failed to add question:', err);
+    } finally {
+      setSubmittingQuestion(false);
+    }
+  };
+
+  const handleAddQuestionKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleAddQuestion();
+    }
+    if (e.key === 'Escape') {
+      setShowAddQuestion(false);
+      setNewQuestionText('');
+    }
+  };
+
+  const allClientQuestions = [
+    ...briefing.clientQuestions,
+    ...manualQuestions.map((q) => ({ question: q, context: undefined })),
+  ];
+  const hasClientQuestions =
+    allClientQuestions.length > 0 || !!onClientQuestionAdd;
   const hasSuggestedQuestions = briefing.suggestedQuestions.length > 0;
   const allAnswered =
     hasSuggestedQuestions &&
@@ -142,15 +200,20 @@ export function CuratedNote({
             <div className='curated-note__section-icon curated-note__section-icon--questions'>
               <HelpCircle size={16} />
             </div>
-            <h3 className='curated-note__section-title'>
-              Preguntas del Cliente
-            </h3>
-            <span className='curated-note__section-count'>
-              {briefing.clientQuestions.length}
-            </span>
+            <div className='curated-note__section-header-text'>
+              <h3 className='curated-note__section-title'>Tus Preguntas</h3>
+              <p className='curated-note__section-subtitle'>
+                Preguntas que dejaste en tu mensaje
+              </p>
+            </div>
+            {allClientQuestions.length > 0 && (
+              <span className='curated-note__section-count'>
+                {allClientQuestions.length}
+              </span>
+            )}
           </div>
           <ul className='curated-note__question-list'>
-            {briefing.clientQuestions.map((q, index) => (
+            {allClientQuestions.map((q, index) => (
               <li
                 key={index}
                 className='curated-note__question-item glass-card'
@@ -167,6 +230,55 @@ export function CuratedNote({
               </li>
             ))}
           </ul>
+
+          {/* Add question inline */}
+          {onClientQuestionAdd && !showAddQuestion && (
+            <button
+              type='button'
+              className='curated-note__add-question-btn'
+              onClick={() => setShowAddQuestion(true)}
+            >
+              <Plus size={14} />
+              <span>Agregar otra pregunta</span>
+            </button>
+          )}
+
+          {showAddQuestion && (
+            <div className='curated-note__reply-input-area'>
+              <textarea
+                ref={addQuestionRef}
+                className='curated-note__reply-textarea'
+                value={newQuestionText}
+                onChange={(e) => setNewQuestionText(e.target.value)}
+                onKeyDown={handleAddQuestionKeyDown}
+                placeholder='Escribí tu pregunta...'
+                rows={2}
+                disabled={submittingQuestion}
+              />
+              <div className='curated-note__reply-actions'>
+                <button
+                  type='button'
+                  className='curated-note__reply-cancel'
+                  onClick={() => {
+                    setShowAddQuestion(false);
+                    setNewQuestionText('');
+                  }}
+                  disabled={submittingQuestion}
+                >
+                  <X size={14} />
+                </button>
+                <button
+                  type='button'
+                  className='curated-note__reply-send'
+                  onClick={handleAddQuestion}
+                  disabled={!newQuestionText.trim() || submittingQuestion}
+                >
+                  <Send size={14} />
+                  <span>Enviar</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -323,7 +435,7 @@ function formatBriefingAsText(
   ];
 
   if (briefing.clientQuestions.length > 0) {
-    lines.push('', '---', '', '❓ Preguntas del Cliente:');
+    lines.push('', '---', '', '❓ Tus Preguntas:');
     briefing.clientQuestions.forEach((q) => {
       lines.push(`• ${q.question}`);
       if (q.context) lines.push(`  💬 "${q.context}"`);

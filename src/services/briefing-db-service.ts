@@ -67,3 +67,28 @@ export async function countBriefingsByLink(linkId: string): Promise<number> {
   if (error) return 0;
   return count ?? 0;
 }
+
+/** Append a manually-added client question to the curated_json */
+export async function addClientQuestionToBriefing(
+  briefingId: string,
+  question: string,
+): Promise<void> {
+  // Read current briefing
+  const existing = await getBriefingById(briefingId);
+  if (!existing) throw new Error('Briefing not found');
+
+  const json = existing.curated_json as CuratedBriefing;
+  const updatedQuestions = [
+    ...json.clientQuestions,
+    { question, context: undefined },
+  ];
+
+  const { error } = await supabase
+    .from('briefings')
+    .update({
+      curated_json: { ...json, clientQuestions: updatedQuestions },
+    })
+    .eq('id', briefingId);
+
+  if (error) throw new Error(error.message);
+}
