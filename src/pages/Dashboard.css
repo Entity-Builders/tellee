@@ -173,6 +173,12 @@
   cursor: not-allowed;
 }
 
+.dashboard__submit-btn--ai {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
 /* Context Notes */
 .dashboard__label {
   font-size: var(--text-xs);

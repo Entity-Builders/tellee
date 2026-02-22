@@ -94,47 +94,56 @@ FORMATO:
   ]
 }`;
 
-// ── Seed question generation (at link creation time) ──
+// ── Link metadata generation (at link creation time) ──
 
-const SEED_QUESTIONS_PROMPT = `Eres un asistente que ayuda a profesionales a preparar preguntas para sus clientes antes de comenzar un proyecto.
+export interface LinkMetadata {
+  title: string;
+  professionContext: string;
+  seedQuestions: SeedQuestion[];
+}
 
-Tu tarea:
-1. Leer las notas/contexto del proyecto proporcionadas por el profesional
-2. Generar 3-5 preguntas clave que el profesional debería hacerle al cliente para entender bien el proyecto
-3. Las preguntas deben basarse en la información del contexto, NO ser genéricas
+const LINK_METADATA_PROMPT = `Eres un asistente que ayuda a profesionales a preparar links de briefing para sus clientes.
+
+A partir del texto/notas que te pase el profesional, necesitás generar:
+1. Un TÍTULO corto y descriptivo del proyecto (máx 6 palabras). Ej: "Sitio Web para Clínica Dental", "Diseño de Logo Restaurante"
+2. Un CONTEXTO PROFESIONAL breve (1-3 palabras del rubro). Ej: "Desarrollo Web", "Diseño Gráfico", "Marketing Digital"
+3. 3-5 PREGUNTAS clave que el profesional debería hacerle al cliente
 
 REGLAS:
+- El título debe ser claro y específico al proyecto
+- El contexto debe ser el rubro/servicio del profesional
+- Las preguntas deben basarse en la info del texto, NO ser genéricas
 - Máximo 5 preguntas, mínimo 2
-- Preguntas concretas y relevantes al contexto
-- Incluye una razón breve de por qué esa info es importante
 - Responde en español
-- No preguntes cosas que ya están claras en el contexto
-- Formato JSON válido (sin markdown)
+- JSON válido (sin markdown)
 
 FORMATO:
 {
+  "title": "Título del Proyecto",
+  "professionContext": "Rubro Profesional",
   "questions": [
     { "id": "sq1", "question": "La pregunta", "reason": "Por qué importa" }
   ]
 }`;
 
-/** Generate seed questions from admin's context notes (at link creation time) */
-export async function generateSeedQuestions(
+/** Generate link title, profession context and seed questions from admin's notes */
+export async function generateLinkMetadata(
   contextNotes: string,
-  professionContext?: string,
-): Promise<SeedQuestion[]> {
+): Promise<LinkMetadata> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
   if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-    return [];
+    // Fallback: extract a basic title from first line
+    const firstLine = contextNotes.split('\n')[0].slice(0, 60).trim();
+    return {
+      title: firstLine || 'Nuevo Proyecto',
+      professionContext: '',
+      seedQuestions: [],
+    };
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-  const contextNote = professionContext
-    ? `\n\nCONTEXTO PROFESIONAL: ${professionContext}.`
-    : '';
 
   try {
     const result = await model.generateContent({
@@ -143,20 +152,24 @@ export async function generateSeedQuestions(
           role: 'user',
           parts: [
             {
-              text: `${SEED_QUESTIONS_PROMPT}${contextNote}\n\n--- NOTAS DEL PROYECTO ---\n${contextNotes}\n--- FIN ---\n\nGenera las preguntas:`,
+              text: `${LINK_METADATA_PROMPT}\n\n--- NOTAS DEL PROFESIONAL ---\n${contextNotes}\n--- FIN ---\n\nGenera el JSON:`,
             },
           ],
         },
       ],
       generationConfig: {
-        temperature: 0.4,
+        temperature: 0.3,
         maxOutputTokens: 1024,
         responseMimeType: 'application/json',
       },
     });
 
     const responseText = result.response.text();
-    let parsed: { questions: SeedQuestion[] };
+    let parsed: {
+      title: string;
+      professionContext: string;
+      questions: SeedQuestion[];
+    };
 
     try {
       parsed = JSON.parse(responseText);
@@ -165,13 +178,27 @@ export async function generateSeedQuestions(
       if (jsonMatch) {
         parsed = JSON.parse(jsonMatch[0]);
       } else {
-        return [];
+        return {
+          title:
+            contextNotes.split('\n')[0].slice(0, 60).trim() || 'Nuevo Proyecto',
+          professionContext: '',
+          seedQuestions: [],
+        };
       }
     }
 
-    return parsed.questions ?? [];
+    return {
+      title: parsed.title || 'Nuevo Proyecto',
+      professionContext: parsed.professionContext || '',
+      seedQuestions: parsed.questions ?? [],
+    };
   } catch {
-    return [];
+    return {
+      title:
+        contextNotes.split('\n')[0].slice(0, 60).trim() || 'Nuevo Proyecto',
+      professionContext: '',
+      seedQuestions: [],
+    };
   }
 }
 
