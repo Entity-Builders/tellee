@@ -36,6 +36,7 @@ export function ClientBriefPage() {
   const [notFound, setNotFound] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [isReturnVisitor, setIsReturnVisitor] = useState(false);
+  const [showBrief, setShowBrief] = useState(false);
 
   const [phase, setPhase] = useState<AppPhase>('idle');
   const [briefing, setBriefing] = useState<CuratedBriefing | null>(null);
@@ -309,17 +310,45 @@ export function ClientBriefPage() {
         {phase === 'result' &&
           briefing &&
           (isReturnVisitor ? (
-            <div className='client-brief-page__completed'>
-              <div className='client-brief-page__completed-icon'>✓</div>
-              <h2>¡Gracias por responder!</h2>
-              <p>
-                Tu información sobre <strong>{briefing.title}</strong> fue
-                enviada correctamente.
-              </p>
-              <p className='client-brief-page__completed-sub'>
-                El profesional la revisará pronto.
-              </p>
-            </div>
+            showBrief ? (
+              <>
+                <button
+                  className='client-brief-page__back-link'
+                  onClick={() => setShowBrief(false)}
+                  type='button'
+                >
+                  ← Volver
+                </button>
+                <CuratedNote
+                  briefing={briefing}
+                  onReset={() => {}}
+                  onReplySubmit={handleReplySubmit}
+                  onClientQuestionAdd={handleClientQuestionAdd}
+                  initialReplies={initialReplies}
+                  initialClientQuestionReplies={initialClientQuestionReplies}
+                  viewMode='client-readonly'
+                />
+              </>
+            ) : (
+              <div className='client-brief-page__completed'>
+                <div className='client-brief-page__completed-icon'>✓</div>
+                <h2>¡Gracias por responder!</h2>
+                <p>
+                  Tu información sobre <strong>{briefing.title}</strong> fue
+                  enviada correctamente.
+                </p>
+                <p className='client-brief-page__completed-sub'>
+                  El profesional la revisará pronto.
+                </p>
+                <button
+                  className='client-brief-page__view-brief-link'
+                  onClick={() => setShowBrief(true)}
+                  type='button'
+                >
+                  Ver mi brief
+                </button>
+              </div>
+            )
           ) : (
             <>
               <CuratedNote

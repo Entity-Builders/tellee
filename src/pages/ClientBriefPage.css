@@ -235,6 +235,45 @@
   color: var(--paper-text-secondary);
 }
 
+/* ── View brief link on thank-you screen ── */
+.client-brief-page__view-brief-link {
+  display: inline-block;
+  margin-top: var(--space-lg);
+  background: none;
+  border: none;
+  color: var(--paper-accent);
+  font-family: var(--paper-font-serif);
+  font-size: var(--text-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.client-brief-page__view-brief-link:hover {
+  color: var(--paper-text);
+}
+
+/* ── Back link from brief view ── */
+.client-brief-page__back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background: none;
+  border: none;
+  color: var(--paper-text-muted);
+  font-family: var(--paper-font-serif);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  margin-bottom: var(--space-md);
+  padding: var(--space-xs) 0;
+  transition: color 0.2s ease;
+}
+
+.client-brief-page__back-link:hover {
+  color: var(--paper-text);
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;

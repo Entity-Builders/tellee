@@ -34,8 +34,8 @@ interface CuratedNoteProps {
   initialReplies?: Map<number, string>;
   /** Pre-loaded admin replies to client questions */
   initialClientQuestionReplies?: Map<number, string>;
-  /** 'client' = client-facing view, 'admin' = professional dashboard view */
-  viewMode?: 'client' | 'admin';
+  /** 'client' = client-facing view, 'admin' = professional dashboard view, 'client-readonly' = read-only brief view */
+  viewMode?: 'client' | 'admin' | 'client-readonly';
 }
 
 export function CuratedNote({
@@ -229,7 +229,8 @@ export function CuratedNote({
     ...manualQuestions.map((q) => ({ question: q, context: undefined })),
   ];
   const hasClientQuestions =
-    allClientQuestions.length > 0 || !!onClientQuestionAdd;
+    allClientQuestions.length > 0 ||
+    (!!onClientQuestionAdd && viewMode !== 'client-readonly');
   const hasSuggestedQuestions = briefing.suggestedQuestions.length > 0;
   const allAnswered =
     hasSuggestedQuestions &&
@@ -275,7 +276,7 @@ export function CuratedNote({
                   ? 'Preguntas del Cliente'
                   : 'Tus Preguntas'}
               </h3>
-              {viewMode === 'client' && (
+              {(viewMode === 'client' || viewMode === 'client-readonly') && (
                 <p className='curated-note__section-subtitle'>
                   Preguntas que dejaste en tu mensaje
                 </p>
@@ -313,7 +314,8 @@ export function CuratedNote({
                     <div className='curated-note__reply-answer curated-note__reply-answer--admin'>
                       <Check size={14} className='curated-note__reply-check' />
                       <div>
-                        {viewMode === 'client' && (
+                        {(viewMode === 'client' ||
+                          viewMode === 'client-readonly') && (
                           <span className='curated-note__reply-label'>
                             Respuesta del profesional
                           </span>
@@ -383,16 +385,18 @@ export function CuratedNote({
           </ul>
 
           {/* Add question inline */}
-          {onClientQuestionAdd && !showAddQuestion && (
-            <button
-              type='button'
-              className='curated-note__add-question-btn'
-              onClick={() => setShowAddQuestion(true)}
-            >
-              <Plus size={14} />
-              <span>Agregar otra pregunta</span>
-            </button>
-          )}
+          {onClientQuestionAdd &&
+            viewMode !== 'client-readonly' &&
+            !showAddQuestion && (
+              <button
+                type='button'
+                className='curated-note__add-question-btn'
+                onClick={() => setShowAddQuestion(true)}
+              >
+                <Plus size={14} />
+                <span>Agregar otra pregunta</span>
+              </button>
+            )}
 
           {showAddQuestion && (
             <div className='curated-note__reply-input-area'>
@@ -486,16 +490,18 @@ export function CuratedNote({
                   )}
 
                   {/* Reply button */}
-                  {!isAnswered && !isActive && (
-                    <button
-                      type='button'
-                      className='curated-note__reply-btn'
-                      onClick={() => handleReplyOpen(index)}
-                    >
-                      <MessageCircle size={14} />
-                      <span>Responder</span>
-                    </button>
-                  )}
+                  {!isAnswered &&
+                    !isActive &&
+                    viewMode !== 'client-readonly' && (
+                      <button
+                        type='button'
+                        className='curated-note__reply-btn'
+                        onClick={() => handleReplyOpen(index)}
+                      >
+                        <MessageCircle size={14} />
+                        <span>Responder</span>
+                      </button>
+                    )}
 
                   {/* Inline reply input */}
                   {isActive && (
