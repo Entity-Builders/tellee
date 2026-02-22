@@ -6,6 +6,6 @@ export default defineConfig({
   plugins: [react()],
   publicDir: 'public',
   server: {
-    allowedHosts: ['all'],
+    allowedHosts: true,
   },
 });

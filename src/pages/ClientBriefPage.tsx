@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { BriefingInput } from '../components/BriefingInput';
-import { BriefingChat } from '../components/BriefingChat';
 import { ProcessingIndicator } from '../components/ProcessingIndicator';
 import { CuratedNote } from '../components/CuratedNote';
 import {
@@ -86,6 +85,7 @@ export function ClientBriefPage() {
   const handleSubmit = async (
     text: string,
     attachments: BriefingAttachment[],
+    seedAnswers?: FollowUpAnswer[],
   ) => {
     if (!link) return;
     setClientText(text);
@@ -102,11 +102,12 @@ export function ClientBriefPage() {
       );
 
       if (questions.length > 0) {
+        // AI has follow-up questions — show them inline
         setFollowUpQuestions(questions);
         setPhase('follow-up');
       } else {
-        // No follow-up questions — go straight to final curation
-        await generateFinalBriefing(text);
+        // No AI follow-up needed — generate brief with seed answers if any
+        await generateFinalBriefing(text, seedAnswers);
       }
     } catch (err) {
       const message =
@@ -271,8 +272,11 @@ export function ClientBriefPage() {
         <h1 className='client-brief-page__title'>{link?.title}</h1>
         */}
 
-        {/* Phase: idle / error — show briefing input */}
-        {(phase === 'idle' || phase === 'error') && (
+        {/* Phase: idle / follow-up / error — show briefing input */}
+        {(phase === 'idle' ||
+          phase === 'error' ||
+          phase === 'follow-up' ||
+          phase === 'processing-final') && (
           <>
             <BriefingInput
               onSubmit={handleSubmit}
@@ -282,6 +286,19 @@ export function ClientBriefPage() {
               linkTitle={link?.title}
               seedQuestions={
                 (link?.seed_questions as SeedQuestion[] | null) ?? undefined
+              }
+              followUpQuestions={
+                phase === 'follow-up' || phase === 'processing-final'
+                  ? followUpQuestions
+                  : undefined
+              }
+              onFollowUpComplete={handleFollowUpComplete}
+              onFollowUpSkip={handleFollowUpSkip}
+              isProcessingFinal={phase === 'processing-final'}
+              defaultValue={
+                phase === 'follow-up' || phase === 'processing-final'
+                  ? clientText
+                  : undefined
               }
             />
             {error && (
@@ -297,20 +314,6 @@ export function ClientBriefPage() {
 
         {/* Phase: processing — initial AI analysis */}
         {phase === 'processing' && <ProcessingIndicator />}
-
-        {/* Phase: follow-up — conversational questions */}
-        {phase === 'follow-up' && (
-          <BriefingChat
-            originalText={clientText}
-            questions={followUpQuestions}
-            onComplete={handleFollowUpComplete}
-            onSkip={handleFollowUpSkip}
-            isProcessing={false}
-          />
-        )}
-
-        {/* Phase: processing-final — generating final brief */}
-        {phase === 'processing-final' && <ProcessingIndicator />}
 
         {/* Phase: result — show curated note or thank-you */}
         {phase === 'result' &&
