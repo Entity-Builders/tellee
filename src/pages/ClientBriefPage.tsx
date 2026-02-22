@@ -12,9 +12,14 @@ import {
   saveBriefing,
   getBriefingsByLink,
   addClientQuestionToBriefing,
+  deleteBriefing,
 } from '../services/briefing-db-service';
 import { saveReply } from '../services/reply-service';
-import { getLinkBySlug, type BriefingLink } from '../services/link-service';
+import {
+  getLinkBySlug,
+  updateLinkStatus,
+  type BriefingLink,
+} from '../services/link-service';
 import type {
   AppPhase,
   CuratedBriefing,
@@ -200,6 +205,35 @@ export function ClientBriefPage() {
     await addClientQuestionToBriefing(briefingId, question);
   };
 
+  // ── Accept: mark link as completed → show thank-you ──
+  const handleAcceptBriefing = async () => {
+    if (!link) return;
+    try {
+      await updateLinkStatus(link.id, 'completed');
+      setIsReturnVisitor(true);
+    } catch (err) {
+      console.error('Failed to accept briefing:', err);
+    }
+  };
+
+  // ── Modify: delete current briefing → reset to idle ──
+  const handleModifyBriefing = async () => {
+    if (!briefingId || !link) return;
+    try {
+      await deleteBriefing(briefingId);
+      // Reset link status back to pending
+      await updateLinkStatus(link.id, 'pending');
+    } catch (err) {
+      console.error('Failed to reset briefing:', err);
+    }
+    setBriefing(null);
+    setBriefingId(null);
+    setInitialReplies(new Map());
+    setClientText('');
+    setPhase('idle');
+    setIsReturnVisitor(false);
+  };
+
   // ── Loading state ──
   if (linkLoading) {
     return (
@@ -229,8 +263,9 @@ export function ClientBriefPage() {
       className={`client-brief-page paper-theme ${isFocused || phase !== 'idle' ? 'client-brief-page--focused' : ''}`}
     >
       <div className='client-brief-page__content'>
-        {/* Title — reveals with animation on focus */}
+        {/* Title — reveals with animation on focus 
         <h1 className='client-brief-page__title'>{link?.title}</h1>
+        */}
 
         {/* Phase: idle / error — show briefing input */}
         {(phase === 'idle' || phase === 'error') && (
@@ -286,15 +321,33 @@ export function ClientBriefPage() {
               </p>
             </div>
           ) : (
-            <CuratedNote
-              briefing={briefing}
-              onReset={() => {}}
-              onReplySubmit={handleReplySubmit}
-              onClientQuestionAdd={handleClientQuestionAdd}
-              initialReplies={initialReplies}
-              initialClientQuestionReplies={initialClientQuestionReplies}
-              viewMode='client'
-            />
+            <>
+              <CuratedNote
+                briefing={briefing}
+                onReset={() => {}}
+                onReplySubmit={handleReplySubmit}
+                onClientQuestionAdd={handleClientQuestionAdd}
+                initialReplies={initialReplies}
+                initialClientQuestionReplies={initialClientQuestionReplies}
+                viewMode='client'
+              />
+              <div className='client-brief-page__actions'>
+                <button
+                  className='client-brief-page__action-btn client-brief-page__action-btn--accept'
+                  onClick={handleAcceptBriefing}
+                  type='button'
+                >
+                  ✓ Confirmar y enviar
+                </button>
+                <button
+                  className='client-brief-page__action-btn client-brief-page__action-btn--modify'
+                  onClick={handleModifyBriefing}
+                  type='button'
+                >
+                  Modificar respuesta
+                </button>
+              </div>
+            </>
           ))}
       </div>
 

@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabase';
-import { updateLinkStatus } from './link-service';
 import type { CuratedBriefing } from '../types';
 
 export interface PersistedBriefing {
@@ -27,14 +26,6 @@ export async function saveBriefing(
     .single();
 
   if (error) throw new Error(error.message);
-
-  // Mark the link as completed now that a briefing exists
-  try {
-    await updateLinkStatus(linkId, 'completed');
-  } catch {
-    // Non-critical — don't break the flow
-  }
-
   return data;
 }
 
