@@ -1,19 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  Send,
   Sparkles,
   Paperclip,
   X,
   ImageIcon,
-  MessageCircle,
-  SkipForward,
   Lightbulb,
   Camera,
+  Check,
 } from 'lucide-react';
 import type {
   BriefingAttachment,
   SeedQuestion,
-  FollowUpQuestion,
   FollowUpAnswer,
 } from '../types';
 import './BriefingInput.css';
@@ -29,13 +26,10 @@ interface BriefingInputProps {
   onFocusChange?: (focused: boolean) => void;
   professionContext?: string;
   linkTitle?: string;
-  /** Pre-approved seed questions — shown as interactive cards from the start */
+  /** Context notes from the professional — shown as a context card */
+  contextNotes?: string;
+  /** Pre-approved seed questions — shown as interactive cards */
   seedQuestions?: SeedQuestion[];
-  /** Follow-up questions from AI — shown inline after initial submit */
-  followUpQuestions?: FollowUpQuestion[];
-  onFollowUpComplete?: (answers: FollowUpAnswer[]) => void;
-  onFollowUpSkip?: () => void;
-  isProcessingFinal?: boolean;
 }
 
 const MAX_CHARS = 2000;
@@ -50,11 +44,8 @@ export function BriefingInput({
   onFocusChange,
   professionContext,
   linkTitle,
+  contextNotes,
   seedQuestions,
-  followUpQuestions,
-  onFollowUpComplete,
-  onFollowUpSkip,
-  isProcessingFinal,
 }: BriefingInputProps) {
   const [text, setText] = useState(defaultValue);
   const [attachments, setAttachments] = useState<BriefingAttachment[]>([]);
@@ -62,15 +53,9 @@ export function BriefingInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0);
-  const [followUpAnswers, setFollowUpAnswers] = useState<
-    Record<string, string>
-  >({});
   const [seedAnswers, setSeedAnswers] = useState<Record<string, string>>({});
 
-  // AI-generated follow-up phase (only after initial submit)
-  const hasFollowUp = followUpQuestions && followUpQuestions.length > 0;
   const hasSeedQuestions = seedQuestions && seedQuestions.length > 0;
-  const isInFollowUpPhase = hasFollowUp;
 
   useEffect(() => {
     textareaRef.current?.focus();
@@ -86,6 +71,9 @@ export function BriefingInput({
 
   // ── Dynamic placeholder ──
   const getPlaceholder = (): string => {
+    if (hasSeedQuestions) {
+      return '¿Algo más que quieras contarnos? (opcional)';
+    }
     if (professionContext) {
       return `Cuéntanos un poco más sobre lo que necesitás de ${professionContext.toLowerCase()}...`;
     }
@@ -123,12 +111,7 @@ export function BriefingInput({
           };
           reader.readAsDataURL(file);
         } else {
-          newAttachments.push({
-            id,
-            file,
-            preview: '',
-            type: 'file',
-          });
+          newAttachments.push({ id, file, preview: '', type: 'file' });
         }
       });
 
@@ -150,18 +133,14 @@ export function BriefingInput({
     e.preventDefault();
     e.stopPropagation();
     dragCounterRef.current++;
-    if (e.dataTransfer.types.includes('Files')) {
-      setIsDragging(true);
-    }
+    if (e.dataTransfer.types.includes('Files')) setIsDragging(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     dragCounterRef.current--;
-    if (dragCounterRef.current === 0) {
-      setIsDragging(false);
-    }
+    if (dragCounterRef.current === 0) setIsDragging(false);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -174,17 +153,13 @@ export function BriefingInput({
     e.stopPropagation();
     setIsDragging(false);
     dragCounterRef.current = 0;
-
-    if (e.dataTransfer.files?.length) {
-      addFiles(e.dataTransfer.files);
-    }
+    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
   };
 
   // ── Paste handler (images) ──
   const handlePaste = (e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items) return;
-
     const imageFiles: File[] = [];
     for (const item of Array.from(items)) {
       if (item.type.startsWith('image/')) {
@@ -192,10 +167,7 @@ export function BriefingInput({
         if (file) imageFiles.push(file);
       }
     }
-
-    if (imageFiles.length > 0) {
-      addFiles(imageFiles);
-    }
+    if (imageFiles.length > 0) addFiles(imageFiles);
   };
 
   // ── Collect seed answers ──
@@ -211,7 +183,7 @@ export function BriefingInput({
     return answers;
   };
 
-  // ── Submit (includes seed answers) ──
+  // ── Submit ──
   const handleSubmit = () => {
     const trimmed = text.trim();
     if (
@@ -238,42 +210,23 @@ export function BriefingInput({
     }
   };
 
+  // ── Derived state ──
   const charCount = text.length;
   const isOverLimit = charCount > MAX_CHARS;
   const canSubmit =
-    text.trim().length >= MIN_CHARS_TO_SUBMIT &&
-    !isOverLimit &&
-    !isProcessing &&
-    !isInFollowUpPhase;
-  const showFooter =
-    (text.trim().length > 0 || attachments.length > 0) && !isInFollowUpPhase;
+    text.trim().length >= MIN_CHARS_TO_SUBMIT && !isOverLimit && !isProcessing;
 
-  // ── Follow-up helpers (AI questions only) ──
-  const handleFollowUpAnswer = (questionId: string, value: string) => {
-    setFollowUpAnswers((prev) => ({ ...prev, [questionId]: value }));
-  };
-
-  const handleFollowUpFinish = () => {
-    if (!onFollowUpComplete) return;
-
-    const allAnswers: FollowUpAnswer[] = [];
-    // Include seed answers collected at first submit
-    allAnswers.push(...collectSeedAnswers());
-    // Follow-up question answers
-    if (followUpQuestions) {
-      for (const fq of followUpQuestions) {
-        const answer = followUpAnswers[fq.id]?.trim();
-        if (answer) {
-          allAnswers.push({ questionId: fq.id, question: fq.question, answer });
-        }
-      }
-    }
-    onFollowUpComplete(allAnswers);
-  };
-
-  const answeredFollowUpCount = Object.values(followUpAnswers).filter(
+  const answeredSeedCount = Object.values(seedAnswers).filter(
     (v) => v.trim().length > 0,
   ).length;
+  const totalSeedCount = seedQuestions?.length ?? 0;
+
+  // Submit button label
+  const getSubmitLabel = (): string => {
+    if (isProcessing) return 'Generando...';
+    if (text.trim().length < MIN_CHARS_TO_SUBMIT) return 'Generar brief';
+    return 'Generar brief';
+  };
 
   return (
     <div
@@ -283,29 +236,100 @@ export function BriefingInput({
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      {/* Dynamic greeting — always visible */}
+      {/* ── Greeting ── */}
       <div className='briefing-input__greeting'>
         <h2 className='briefing-input__greeting-title'>
-          {linkTitle
-            ? `${linkTitle}`
-            : professionContext
-              ? `Nuevo pedido`
-              : 'Nuevo pedido'}
+          {linkTitle || 'Nuevo pedido'}
         </h2>
         <p className='briefing-input__greeting-subtitle'>
-          Escribí, adjuntá fotos o archivos — lo que te resulte más fácil.
+          {hasSeedQuestions
+            ? 'Respondé las preguntas y agregá lo que quieras — fotos, archivos, lo que sea.'
+            : 'Escribí, adjuntá fotos o archivos — lo que te resulte más fácil.'}
         </p>
       </div>
 
-      {/* Writing area — read-only in follow-up phase */}
-      <div
-        className={`briefing-input__field ${isInFollowUpPhase ? 'briefing-input__field--readonly' : ''}`}
-        style={{ position: 'relative' }}
-      >
-        {text.length === 0 &&
-          !isProcessing &&
-          attachments.length === 0 &&
-          !isInFollowUpPhase && <span className='briefing-input__cursor' />}
+      {/* ── Context card (what the professional shared) ── */}
+      {contextNotes && (
+        <div className='briefing-input__context-card'>
+          <span className='briefing-input__context-card-label'>
+            📌 Contexto del proyecto
+          </span>
+          <p className='briefing-input__context-card-text'>{contextNotes}</p>
+        </div>
+      )}
+
+      {/* ── Seed questions as interactive cards (above textarea) ── */}
+      {hasSeedQuestions && (
+        <div className='briefing-input__seed-section'>
+          <div className='briefing-input__seed-section-header'>
+            <Lightbulb size={14} />
+            <span>Estas preguntas te pueden ayudar</span>
+            {totalSeedCount > 0 && (
+              <span className='briefing-input__seed-progress'>
+                {answeredSeedCount}/{totalSeedCount}
+              </span>
+            )}
+          </div>
+          <div className='briefing-input__seed-cards'>
+            {seedQuestions.map((q, index) => {
+              const isAnswered = !!seedAnswers[q.id]?.trim();
+              return (
+                <div
+                  key={q.id}
+                  className={`briefing-input__seed-card ${isAnswered ? 'briefing-input__seed-card--answered' : ''}`}
+                  style={{ animationDelay: `${index * 0.08}s` }}
+                >
+                  <div className='briefing-input__seed-card-header'>
+                    <span
+                      className={`briefing-input__seed-card-status ${isAnswered ? 'briefing-input__seed-card-status--done' : ''}`}
+                    >
+                      {isAnswered ? <Check size={12} /> : index + 1}
+                    </span>
+                    <p className='briefing-input__seed-card-question'>
+                      {q.question}
+                    </p>
+                  </div>
+                  <input
+                    type='text'
+                    className='briefing-input__seed-card-input'
+                    placeholder='Tu respuesta (opcional)'
+                    value={seedAnswers[q.id] || ''}
+                    onChange={(e) =>
+                      setSeedAnswers((prev) => ({
+                        ...prev,
+                        [q.id]: e.target.value,
+                      }))
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const nextSeed = seedQuestions[index + 1];
+                        if (nextSeed) {
+                          document
+                            .querySelector<HTMLInputElement>(
+                              `[data-seed-id="${nextSeed.id}"]`,
+                            )
+                            ?.focus();
+                        } else {
+                          textareaRef.current?.focus();
+                        }
+                      }
+                    }}
+                    data-seed-id={q.id}
+                    disabled={isProcessing}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Writing area ── */}
+      <div className='briefing-input__field' style={{ position: 'relative' }}>
+        {text.length === 0 && !isProcessing && attachments.length === 0 && (
+          <span className='briefing-input__cursor' />
+        )}
 
         <textarea
           ref={textareaRef}
@@ -317,10 +341,9 @@ export function BriefingInput({
           onBlur={handleBlur}
           onPaste={handlePaste}
           placeholder={getPlaceholder()}
-          disabled={isProcessing || isInFollowUpPhase}
+          disabled={isProcessing}
           rows={3}
           aria-label='Escribí tu pedido'
-          readOnly={isInFollowUpPhase}
         />
 
         {/* Attachment thumbnails */}
@@ -340,76 +363,71 @@ export function BriefingInput({
                     <span>{att.file.name}</span>
                   </div>
                 )}
-                {!isInFollowUpPhase && (
-                  <button
-                    className='briefing-input__attachment-remove'
-                    onClick={() => removeAttachment(att.id)}
-                    type='button'
-                    aria-label={`Eliminar ${att.file.name}`}
-                  >
-                    <X size={12} />
-                  </button>
-                )}
+                <button
+                  className='briefing-input__attachment-remove'
+                  onClick={() => removeAttachment(att.id)}
+                  type='button'
+                  aria-label={`Eliminar ${att.file.name}`}
+                >
+                  <X size={12} />
+                </button>
               </div>
             ))}
           </div>
         )}
 
-        {/* Inline toolbar — hidden during follow-up */}
-        {!isInFollowUpPhase && (
-          <div className='briefing-input__toolbar'>
-            <div className='briefing-input__chips'>
-              <button
-                className='briefing-input__chip'
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isProcessing || attachments.length >= MAX_ATTACHMENTS}
-                type='button'
-              >
-                <Camera size={14} />
-                <span>Fotos</span>
-              </button>
-              <button
-                className='briefing-input__chip'
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isProcessing || attachments.length >= MAX_ATTACHMENTS}
-                type='button'
-              >
-                <Paperclip size={14} />
-                <span>Archivos</span>
-              </button>
-              <input
-                ref={fileInputRef}
-                type='file'
-                accept='image/*,.pdf,.doc,.docx'
-                multiple
-                className='briefing-input__file-input'
-                onChange={(e) => {
-                  if (e.target.files) addFiles(e.target.files);
-                  e.target.value = '';
-                }}
-              />
-            </div>
-
-            {showFooter && (
-              <button
-                className='briefing-input__submit'
-                onClick={handleSubmit}
-                disabled={!canSubmit}
-                type='button'
-                aria-label='Enviar'
-              >
-                {isProcessing ? (
-                  <Sparkles size={16} className='briefing-input__spinner' />
-                ) : (
-                  <>
-                    <Send size={14} />
-                    <span>Enviar</span>
-                  </>
-                )}
-              </button>
-            )}
+        {/* Toolbar: chips + always-visible submit */}
+        <div className='briefing-input__toolbar'>
+          <div className='briefing-input__chips'>
+            <button
+              className='briefing-input__chip'
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isProcessing || attachments.length >= MAX_ATTACHMENTS}
+              type='button'
+            >
+              <Camera size={14} />
+              <span>Fotos</span>
+            </button>
+            <button
+              className='briefing-input__chip'
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isProcessing || attachments.length >= MAX_ATTACHMENTS}
+              type='button'
+            >
+              <Paperclip size={14} />
+              <span>Archivos</span>
+            </button>
+            <input
+              ref={fileInputRef}
+              type='file'
+              accept='image/*,.pdf,.doc,.docx'
+              multiple
+              className='briefing-input__file-input'
+              onChange={(e) => {
+                if (e.target.files) addFiles(e.target.files);
+                e.target.value = '';
+              }}
+            />
           </div>
-        )}
+
+          {/* Submit button — always visible, disabled until ready */}
+          <button
+            className='briefing-input__submit'
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            type='button'
+            aria-label='Generar brief'
+          >
+            {isProcessing ? (
+              <Sparkles size={16} className='briefing-input__spinner' />
+            ) : (
+              <>
+                <Sparkles size={14} />
+                <span>{getSubmitLabel()}</span>
+              </>
+            )}
+          </button>
+        </div>
 
         {/* Drop overlay */}
         {isDragging && (
@@ -419,146 +437,6 @@ export function BriefingInput({
           </div>
         )}
       </div>
-
-      {/* ── Seed questions as interactive cards (always visible before submit) ── */}
-      {hasSeedQuestions && !isInFollowUpPhase && (
-        <div className='briefing-input__seed-section'>
-          <div className='briefing-input__seed-section-header'>
-            <Lightbulb size={14} />
-            <span>Estas preguntas te pueden ayudar</span>
-          </div>
-          <div className='briefing-input__seed-cards'>
-            {seedQuestions.map((q, index) => (
-              <div
-                key={q.id}
-                className={`briefing-input__seed-card ${seedAnswers[q.id]?.trim() ? 'briefing-input__seed-card--answered' : ''}`}
-                style={{ animationDelay: `${index * 0.08}s` }}
-              >
-                <p className='briefing-input__seed-card-question'>
-                  {q.question}
-                </p>
-                <input
-                  type='text'
-                  className='briefing-input__seed-card-input'
-                  placeholder='Tu respuesta (opcional)'
-                  value={seedAnswers[q.id] || ''}
-                  onChange={(e) =>
-                    setSeedAnswers((prev) => ({
-                      ...prev,
-                      [q.id]: e.target.value,
-                    }))
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const nextSeed = seedQuestions[index + 1];
-                      if (nextSeed) {
-                        document
-                          .querySelector<HTMLInputElement>(
-                            `[data-seed-id="${nextSeed.id}"]`,
-                          )
-                          ?.focus();
-                      } else {
-                        textareaRef.current?.focus();
-                      }
-                    }
-                  }}
-                  data-seed-id={q.id}
-                  disabled={isProcessing}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── AI follow-up questions (inline, after submit) ── */}
-      {isInFollowUpPhase && (
-        <div className='briefing-input__followup-section'>
-          <div className='briefing-input__followup-header'>
-            <MessageCircle size={16} />
-            <span>Unas preguntas rápidas antes de generar tu brief</span>
-          </div>
-
-          <div className='briefing-input__followup-questions'>
-            {followUpQuestions!.map((q, index) => (
-              <div
-                key={q.id}
-                className={`briefing-input__followup-question ${followUpAnswers[q.id]?.trim() ? 'briefing-input__followup-question--answered' : ''}`}
-                style={{ animationDelay: `${index * 0.08}s` }}
-              >
-                <div className='briefing-input__followup-question-header'>
-                  <span className='briefing-input__followup-question-number'>
-                    {index + 1}
-                  </span>
-                  <p className='briefing-input__followup-question-text'>
-                    {q.question}
-                  </p>
-                </div>
-                <div className='briefing-input__followup-answer-area'>
-                  <input
-                    type='text'
-                    className='briefing-input__followup-input'
-                    placeholder='Tu respuesta (opcional)'
-                    value={followUpAnswers[q.id] || ''}
-                    onChange={(e) => handleFollowUpAnswer(q.id, e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const nextQ = followUpQuestions![index + 1];
-                        if (nextQ) {
-                          document
-                            .querySelector<HTMLInputElement>(
-                              `[data-question-id="${nextQ.id}"]`,
-                            )
-                            ?.focus();
-                        } else {
-                          handleFollowUpFinish();
-                        }
-                      }
-                    }}
-                    data-question-id={q.id}
-                    disabled={isProcessingFinal}
-                    autoFocus={index === 0}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className='briefing-input__followup-actions'>
-            <button
-              className='briefing-input__followup-skip'
-              onClick={onFollowUpSkip}
-              disabled={isProcessingFinal}
-              type='button'
-            >
-              <SkipForward size={14} />
-              <span>Omitir</span>
-            </button>
-            <button
-              className='briefing-input__followup-finish'
-              onClick={handleFollowUpFinish}
-              disabled={isProcessingFinal}
-              type='button'
-            >
-              {isProcessingFinal ? (
-                <Sparkles size={16} className='briefing-input__spinner' />
-              ) : (
-                <>
-                  <Sparkles size={14} />
-                  <span>
-                    Generar brief
-                    {answeredFollowUpCount > 0
-                      ? ` (${answeredFollowUpCount})`
-                      : ''}
-                  </span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

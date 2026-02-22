@@ -3,10 +3,7 @@ import { useParams } from 'react-router-dom';
 import { BriefingInput } from '../components/BriefingInput';
 import { ProcessingIndicator } from '../components/ProcessingIndicator';
 import { CuratedNote } from '../components/CuratedNote';
-import {
-  curateBriefing,
-  generateFollowUpQuestions,
-} from '../services/briefing-service';
+import { curateBriefing } from '../services/briefing-service';
 import {
   saveBriefing,
   getBriefingsByLink,
@@ -22,7 +19,6 @@ import {
 import type {
   AppPhase,
   CuratedBriefing,
-  FollowUpQuestion,
   FollowUpAnswer,
   BriefingAttachment,
   SeedQuestion,
@@ -48,15 +44,6 @@ export function ClientBriefPage() {
     useState<Map<number, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
 
-  // Follow-up state
-  const [clientText, setClientText] = useState('');
-  const [_clientAttachments, setClientAttachments] = useState<
-    BriefingAttachment[]
-  >([]);
-  const [followUpQuestions, setFollowUpQuestions] = useState<
-    FollowUpQuestion[]
-  >([]);
-
   useEffect(() => {
     if (!slug) return;
     getLinkBySlug(slug).then(async (result) => {
@@ -81,64 +68,18 @@ export function ClientBriefPage() {
     });
   }, [slug]);
 
-  // ── Phase 1: Initial submission → generate follow-up questions ──
+  // ── Submit: go straight to brief generation ──
   const handleSubmit = async (
     text: string,
-    attachments: BriefingAttachment[],
+    _attachments: BriefingAttachment[],
     seedAnswers?: FollowUpAnswer[],
   ) => {
     if (!link) return;
-    setClientText(text);
-    setClientAttachments(attachments);
     setPhase('processing');
     setError(null);
 
     try {
-      // Generate follow-up questions
-      const questions = await generateFollowUpQuestions(
-        text,
-        link.profession_context ?? undefined,
-        link.context_notes ?? undefined,
-      );
-
-      if (questions.length > 0) {
-        // AI has follow-up questions — show them inline
-        setFollowUpQuestions(questions);
-        setPhase('follow-up');
-      } else {
-        // No AI follow-up needed — generate brief with seed answers if any
-        await generateFinalBriefing(text, seedAnswers);
-      }
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'Algo salió mal. Intenta de nuevo.';
-      setError(message);
-      setPhase('error');
-    }
-  };
-
-  // ── Phase 2a: User answered follow-up → generate final brief ──
-  const handleFollowUpComplete = async (answers: FollowUpAnswer[]) => {
-    setPhase('processing-final');
-    try {
-      await generateFinalBriefing(clientText, answers);
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'Algo salió mal. Intenta de nuevo.';
-      setError(message);
-      setPhase('error');
-    }
-  };
-
-  // ── Phase 2b: User skipped follow-up → generate without answers ──
-  const handleFollowUpSkip = async () => {
-    setPhase('processing-final');
-    try {
-      await generateFinalBriefing(clientText);
+      await generateFinalBriefing(text, seedAnswers);
     } catch (err) {
       const message =
         err instanceof Error
@@ -234,7 +175,6 @@ export function ClientBriefPage() {
     setBriefing(null);
     setBriefingId(null);
     setInitialReplies(new Map());
-    setClientText('');
     setPhase('idle');
     setIsReturnVisitor(false);
   };
@@ -272,11 +212,8 @@ export function ClientBriefPage() {
         <h1 className='client-brief-page__title'>{link?.title}</h1>
         */}
 
-        {/* Phase: idle / follow-up / error — show briefing input */}
-        {(phase === 'idle' ||
-          phase === 'error' ||
-          phase === 'follow-up' ||
-          phase === 'processing-final') && (
+        {/* Phase: idle / error — show briefing input */}
+        {(phase === 'idle' || phase === 'error') && (
           <>
             <BriefingInput
               onSubmit={handleSubmit}
@@ -284,21 +221,9 @@ export function ClientBriefPage() {
               onFocusChange={setIsFocused}
               professionContext={link?.profession_context ?? undefined}
               linkTitle={link?.title}
+              contextNotes={link?.client_summary ?? undefined}
               seedQuestions={
                 (link?.seed_questions as SeedQuestion[] | null) ?? undefined
-              }
-              followUpQuestions={
-                phase === 'follow-up' || phase === 'processing-final'
-                  ? followUpQuestions
-                  : undefined
-              }
-              onFollowUpComplete={handleFollowUpComplete}
-              onFollowUpSkip={handleFollowUpSkip}
-              isProcessingFinal={phase === 'processing-final'}
-              defaultValue={
-                phase === 'follow-up' || phase === 'processing-final'
-                  ? clientText
-                  : undefined
               }
             />
             {error && (

@@ -52,6 +52,74 @@
   font-style: italic;
 }
 
+/* ── Context card (what the professional shared) ── */
+.briefing-input__context-card {
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(0, 0, 0, 0.02);
+  border-left: 3px solid var(--paper-accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  animation: fadeInUp 0.5s ease 0.15s both;
+}
+
+.briefing-input__context-card-label {
+  display: block;
+  font-family: var(--paper-font-serif);
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--paper-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.briefing-input__context-card-text {
+  font-family: var(--paper-font-serif);
+  font-size: 0.88rem;
+  color: var(--paper-text-secondary);
+  line-height: 1.6;
+  font-style: italic;
+  margin: 0;
+}
+
+/* ── Seed progress counter ── */
+.briefing-input__seed-progress {
+  margin-left: auto;
+  font-family: var(--paper-font-serif);
+  font-size: 0.72rem;
+  color: var(--paper-accent);
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+/* ── Seed card number/check indicator ── */
+.briefing-input__seed-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+}
+
+.briefing-input__seed-card-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.06);
+  font-family: var(--paper-font-serif);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--paper-text-muted);
+  margin-top: 2px;
+  transition: all 0.3s ease;
+}
+
+.briefing-input__seed-card-status--done {
+  background: var(--paper-accent);
+  color: white;
+}
+
 /* ── Seed questions as interactive cards ── */
 .briefing-input__seed-section {
   margin-top: var(--space-md);

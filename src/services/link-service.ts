@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import type { SeedQuestion } from '../types';
 
 export type LinkStatus = 'pending' | 'completed';
+export type LinkMode = 'collect' | 'pre-briefed';
 
 export interface BriefingLink {
   id: string;
@@ -10,7 +11,9 @@ export interface BriefingLink {
   title: string;
   profession_context: string | null;
   context_notes: string | null;
+  client_summary: string | null;
   seed_questions: SeedQuestion[] | null;
+  mode: LinkMode;
   is_active: boolean;
   status: LinkStatus;
   created_at: string;
@@ -34,13 +37,14 @@ export async function createBriefingLink(
   professionContext?: string,
   contextNotes?: string,
   seedQuestions?: SeedQuestion[],
+  clientSummary?: string,
+  mode: LinkMode = 'collect',
 ): Promise<BriefingLink> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  // Ensure profile exists (self-healing for users created before the trigger)
   await supabase
     .from('tellee_profiles')
     .upsert({ id: user.id }, { onConflict: 'id' });
@@ -55,8 +59,10 @@ export async function createBriefingLink(
       title,
       profession_context: professionContext || null,
       context_notes: contextNotes || null,
+      client_summary: clientSummary || null,
       seed_questions:
         seedQuestions && seedQuestions.length > 0 ? seedQuestions : null,
+      mode,
     })
     .select()
     .single();

@@ -13,6 +13,7 @@ import {
   Pencil,
   Check,
   ArrowLeft,
+  HelpCircle,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
 import {
@@ -25,6 +26,7 @@ import { countBriefingsByLink } from '../services/briefing-db-service';
 import {
   generateLinkMetadata,
   type LinkMetadata,
+  type ClientQuestionFound,
 } from '../services/briefing-service';
 import type { SeedQuestion } from '../types';
 import { APP_NAME } from '../constants';
@@ -57,6 +59,12 @@ export function Dashboard() {
   const [editingQuestionText, setEditingQuestionText] = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
   const [newCustomQuestion, setNewCustomQuestion] = useState('');
+  const [clientQuestions, setClientQuestions] = useState<ClientQuestionFound[]>(
+    [],
+  );
+  const [clientAnswers, setClientAnswers] = useState<Record<string, string>>(
+    {},
+  );
 
   useEffect(() => {
     loadLinks();
@@ -89,6 +97,8 @@ export function Dashboard() {
     setEditingQuestionId(null);
     setEditingTitle(false);
     setNewCustomQuestion('');
+    setClientQuestions([]);
+    setClientAnswers({});
   };
 
   const closeCreate = () => {
@@ -108,6 +118,7 @@ export function Dashboard() {
       setGeneratedContext(metadata.professionContext);
       setGeneratedSummary(metadata.summary);
       setSeedQuestions(metadata.seedQuestions);
+      setClientQuestions(metadata.clientQuestions);
       setCreatePhase('review');
     } catch (err) {
       console.error('Failed to generate metadata:', err);
@@ -120,11 +131,24 @@ export function Dashboard() {
     if (!generatedTitle.trim()) return;
     setCreatePhase('saving');
     try {
+      // Enrich context with client question answers
+      let enrichedContext = description.trim();
+      const answered = clientQuestions.filter((cq) =>
+        clientAnswers[cq.id]?.trim(),
+      );
+      if (answered.length > 0) {
+        enrichedContext += '\n\n--- RESPUESTAS DEL PROFESIONAL ---';
+        answered.forEach((cq) => {
+          enrichedContext += `\nPregunta: ${cq.question}\nRespuesta: ${clientAnswers[cq.id]}`;
+        });
+      }
+
       await createBriefingLink(
         generatedTitle.trim(),
         generatedContext.trim() || undefined,
-        description.trim(),
+        enrichedContext,
         seedQuestions.length > 0 ? seedQuestions : undefined,
+        generatedSummary.trim() || undefined,
       );
       closeCreate();
       await loadLinks();
@@ -426,6 +450,57 @@ export function Dashboard() {
                     </button>
                   </div>
                 </div>
+
+                {/* Client Questions Found */}
+                {clientQuestions.length > 0 && (
+                  <div className='dashboard__client-questions'>
+                    <label className='dashboard__label'>
+                      <HelpCircle
+                        size={12}
+                        style={{
+                          display: 'inline',
+                          verticalAlign: 'middle',
+                          marginRight: 4,
+                        }}
+                      />
+                      Preguntas del Cliente Detectadas ({clientQuestions.length}
+                      )
+                    </label>
+                    <p className='dashboard__client-questions-hint'>
+                      Respondé estas preguntas antes de crear el link para
+                      enriquecer el contexto.
+                    </p>
+                    <div className='dashboard__client-questions-list'>
+                      {clientQuestions.map((cq) => (
+                        <div
+                          key={cq.id}
+                          className='dashboard__client-question-card'
+                        >
+                          <div className='dashboard__client-question-text'>
+                            ❓ {cq.question}
+                          </div>
+                          {cq.context && (
+                            <div className='dashboard__client-question-context'>
+                              "{cq.context}"
+                            </div>
+                          )}
+                          <textarea
+                            className='dashboard__client-question-answer'
+                            placeholder='Tu respuesta...'
+                            value={clientAnswers[cq.id] || ''}
+                            onChange={(e) =>
+                              setClientAnswers((prev) => ({
+                                ...prev,
+                                [cq.id]: e.target.value,
+                              }))
+                            }
+                            rows={2}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Confirm button */}
                 <button

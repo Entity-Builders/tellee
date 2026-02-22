@@ -96,11 +96,18 @@ FORMATO:
 
 // ── Link metadata generation (at link creation time) ──
 
+export interface ClientQuestionFound {
+  id: string;
+  question: string;
+  context: string;
+}
+
 export interface LinkMetadata {
   title: string;
   professionContext: string;
   summary: string;
   seedQuestions: SeedQuestion[];
+  clientQuestions: ClientQuestionFound[];
 }
 
 const LINK_METADATA_PROMPT = `Eres un asistente que ayuda a profesionales a preparar links de briefing para sus clientes.
@@ -109,14 +116,15 @@ A partir del texto/notas que te pase el profesional, necesitás generar:
 1. Un TÍTULO corto y descriptivo del proyecto (máx 6 palabras). Ej: "Sitio Web para Clínica Dental", "Diseño de Logo Restaurante"
 2. Un CONTEXTO PROFESIONAL breve (1-3 palabras del rubro). Ej: "Desarrollo Web", "Diseño Gráfico", "Marketing Digital"
 3. Un RESUMEN conciso (2-3 oraciones) que sintetice los puntos clave de las notas del profesional
-4. 3-5 PREGUNTAS clave que el profesional debería hacerle al cliente
+4. 3-5 PREGUNTAS clave que el profesional debería hacerle al cliente (seedQuestions)
+5. PREGUNTAS DEL CLIENTE: Si en el texto hay preguntas que el cliente le hizo al profesional (explícitas o implícitas), extraelas. Estas son preguntas que el profesional debería responder ANTES de enviar el link.
 
 REGLAS:
 - El título debe ser claro y específico al proyecto
 - El contexto debe ser el rubro/servicio del profesional
 - El resumen debe capturar la esencia del pedido sin repetir el texto original completo
-- Las preguntas deben basarse en la info del texto, NO ser genéricas
-- Máximo 5 preguntas, mínimo 2
+- Las seedQuestions deben basarse en la info del texto, NO ser genéricas
+- clientQuestions: solo incluir si realmente hay preguntas del cliente en el texto. Si no hay, devolver array vacío.
 - Responde en español
 - JSON válido (sin markdown)
 
@@ -126,7 +134,10 @@ FORMATO:
   "professionContext": "Rubro Profesional",
   "summary": "Resumen conciso de las notas...",
   "questions": [
-    { "id": "sq1", "question": "La pregunta", "reason": "Por qué importa" }
+    { "id": "sq1", "question": "La pregunta para el cliente", "reason": "Por qué importa" }
+  ],
+  "clientQuestions": [
+    { "id": "cq1", "question": "La pregunta que hizo el cliente", "context": "Fragmento original del texto" }
   ]
 }`;
 
@@ -144,6 +155,7 @@ export async function generateLinkMetadata(
       professionContext: '',
       summary: '',
       seedQuestions: [],
+      clientQuestions: [],
     };
   }
 
@@ -175,6 +187,7 @@ export async function generateLinkMetadata(
       professionContext: string;
       summary: string;
       questions: SeedQuestion[];
+      clientQuestions?: ClientQuestionFound[];
     };
 
     try {
@@ -190,6 +203,7 @@ export async function generateLinkMetadata(
           professionContext: '',
           summary: '',
           seedQuestions: [],
+          clientQuestions: [],
         };
       }
     }
@@ -199,6 +213,7 @@ export async function generateLinkMetadata(
       professionContext: parsed.professionContext || '',
       summary: parsed.summary || '',
       seedQuestions: parsed.questions ?? [],
+      clientQuestions: parsed.clientQuestions ?? [],
     };
   } catch {
     return {
@@ -207,6 +222,7 @@ export async function generateLinkMetadata(
       professionContext: '',
       summary: '',
       seedQuestions: [],
+      clientQuestions: [],
     };
   }
 }
