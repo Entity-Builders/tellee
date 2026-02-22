@@ -49,6 +49,13 @@ export interface BriefingAttachment {
   type: 'image' | 'file';
 }
 
+/** AI-generated seed question stored on a link */
+export interface SeedQuestion {
+  id: string;
+  question: string;
+  reason: string;
+}
+
 /** App state machine */
 export type AppPhase =
   | 'idle'

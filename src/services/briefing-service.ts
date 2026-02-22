@@ -6,6 +6,7 @@ import type {
   SuggestedQuestion,
   FollowUpQuestion,
   FollowUpAnswer,
+  SeedQuestion,
 } from '../types';
 
 const SYSTEM_PROMPT = `Eres un asistente experto en convertir descripciones informales de clientes en especificaciones técnicas estructuradas para profesionales.
@@ -93,9 +94,91 @@ FORMATO:
   ]
 }`;
 
+// ── Seed question generation (at link creation time) ──
+
+const SEED_QUESTIONS_PROMPT = `Eres un asistente que ayuda a profesionales a preparar preguntas para sus clientes antes de comenzar un proyecto.
+
+Tu tarea:
+1. Leer las notas/contexto del proyecto proporcionadas por el profesional
+2. Generar 3-5 preguntas clave que el profesional debería hacerle al cliente para entender bien el proyecto
+3. Las preguntas deben basarse en la información del contexto, NO ser genéricas
+
+REGLAS:
+- Máximo 5 preguntas, mínimo 2
+- Preguntas concretas y relevantes al contexto
+- Incluye una razón breve de por qué esa info es importante
+- Responde en español
+- No preguntes cosas que ya están claras en el contexto
+- Formato JSON válido (sin markdown)
+
+FORMATO:
+{
+  "questions": [
+    { "id": "sq1", "question": "La pregunta", "reason": "Por qué importa" }
+  ]
+}`;
+
+/** Generate seed questions from admin's context notes (at link creation time) */
+export async function generateSeedQuestions(
+  contextNotes: string,
+  professionContext?: string,
+): Promise<SeedQuestion[]> {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+    return [];
+  }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+  const contextNote = professionContext
+    ? `\n\nCONTEXTO PROFESIONAL: ${professionContext}.`
+    : '';
+
+  try {
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              text: `${SEED_QUESTIONS_PROMPT}${contextNote}\n\n--- NOTAS DEL PROYECTO ---\n${contextNotes}\n--- FIN ---\n\nGenera las preguntas:`,
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.4,
+        maxOutputTokens: 1024,
+        responseMimeType: 'application/json',
+      },
+    });
+
+    const responseText = result.response.text();
+    let parsed: { questions: SeedQuestion[] };
+
+    try {
+      parsed = JSON.parse(responseText);
+    } catch {
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsed = JSON.parse(jsonMatch[0]);
+      } else {
+        return [];
+      }
+    }
+
+    return parsed.questions ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function generateFollowUpQuestions(
   clientInput: string,
   professionContext?: string,
+  contextNotes?: string,
 ): Promise<FollowUpQuestion[]> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -117,7 +200,7 @@ export async function generateFollowUpQuestions(
           role: 'user',
           parts: [
             {
-              text: `${FOLLOW_UP_PROMPT}${contextNote}\n\n--- TEXTO DEL CLIENTE ---\n${clientInput}\n--- FIN ---\n\nGenera las preguntas de seguimiento:`,
+              text: `${FOLLOW_UP_PROMPT}${contextNote}${contextNotes ? `\n\nNOTAS DEL PROYECTO (del profesional): ${contextNotes}` : ''}\n\n--- TEXTO DEL CLIENTE ---\n${clientInput}\n--- FIN ---\n\nGenera las preguntas de seguimiento:`,
             },
           ],
         },
@@ -156,6 +239,7 @@ export async function curateBriefing(
   clientInput: string,
   professionContext?: string,
   followUpAnswers?: FollowUpAnswer[],
+  contextNotes?: string,
 ): Promise<CuratedBriefing> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -189,7 +273,7 @@ export async function curateBriefing(
         role: 'user',
         parts: [
           {
-            text: `${SYSTEM_PROMPT}${contextNote}\n\n--- TEXTO DEL CLIENTE ---\n${clientInput}\n--- FIN ---${followUpSection}\n\nGenera el JSON de la Nota Curada:`,
+            text: `${SYSTEM_PROMPT}${contextNote}${contextNotes ? `\n\nNOTAS DEL PROYECTO (del profesional): ${contextNotes}` : ''}\n\n--- TEXTO DEL CLIENTE ---\n${clientInput}\n--- FIN ---${followUpSection}\n\nGenera el JSON de la Nota Curada:`,
           },
         ],
       },

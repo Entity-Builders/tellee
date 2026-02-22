@@ -43,6 +43,37 @@
   line-height: 1.5;
 }
 
+/* ── Seed question chips ── */
+.briefing-input__seeds {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+  animation: fadeInUp 0.5s ease 0.3s both;
+}
+
+.briefing-input__seed-chip {
+  display: inline-block;
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--paper-bg-subtle, rgba(92, 83, 71, 0.04));
+  border: 1px solid var(--paper-border, rgba(92, 83, 71, 0.12));
+  border-radius: var(--radius-md);
+  color: var(--paper-text-secondary, #5c5347);
+  font-family: var(--paper-font-serif);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.briefing-input__seed-chip:hover {
+  background: rgba(92, 83, 71, 0.08);
+  border-color: var(--paper-accent, #5c5347);
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(44, 44, 44, 0.06);
+}
+
 /* ── Textarea field — invisible container ── */
 .briefing-input__field {
   display: flex;

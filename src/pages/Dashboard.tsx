@@ -9,6 +9,9 @@ import {
   FileText,
   X,
   Trash2,
+  Sparkles,
+  Pencil,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
 import {
@@ -18,6 +21,8 @@ import {
   type BriefingLink,
 } from '../services/link-service';
 import { countBriefingsByLink } from '../services/briefing-db-service';
+import { generateSeedQuestions } from '../services/briefing-service';
+import type { SeedQuestion } from '../types';
 import { APP_NAME } from '../constants';
 import './Dashboard.css';
 
@@ -33,8 +38,16 @@ export function Dashboard() {
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newContext, setNewContext] = useState('');
+  const [newNotes, setNewNotes] = useState('');
+  const [seedQuestions, setSeedQuestions] = useState<SeedQuestion[]>([]);
+  const [generating, setGenerating] = useState(false);
   const [creating, setCreating] = useState(false);
   const [deletingLink, setDeletingLink] = useState<LinkWithCount | null>(null);
+  const [newCustomQuestion, setNewCustomQuestion] = useState('');
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(
+    null,
+  );
+  const [editingQuestionText, setEditingQuestionText] = useState('');
 
   useEffect(() => {
     loadLinks();
@@ -61,9 +74,16 @@ export function Dashboard() {
     if (!newTitle.trim()) return;
     setCreating(true);
     try {
-      await createBriefingLink(newTitle.trim(), newContext.trim() || undefined);
+      await createBriefingLink(
+        newTitle.trim(),
+        newContext.trim() || undefined,
+        newNotes.trim() || undefined,
+        seedQuestions.length > 0 ? seedQuestions : undefined,
+      );
       setNewTitle('');
       setNewContext('');
+      setNewNotes('');
+      setSeedQuestions([]);
       setShowCreate(false);
       await loadLinks();
     } catch (err) {
@@ -71,6 +91,55 @@ export function Dashboard() {
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleGenerateQuestions = async () => {
+    if (!newNotes.trim()) return;
+    setGenerating(true);
+    try {
+      const questions = await generateSeedQuestions(
+        newNotes.trim(),
+        newContext.trim() || undefined,
+      );
+      setSeedQuestions(questions);
+    } catch (err) {
+      console.error('Failed to generate questions:', err);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const removeSeedQuestion = (id: string) => {
+    setSeedQuestions((prev) => prev.filter((q) => q.id !== id));
+  };
+
+  const addCustomQuestion = () => {
+    if (!newCustomQuestion.trim()) return;
+    const q: SeedQuestion = {
+      id: `custom-${Date.now()}`,
+      question: newCustomQuestion.trim(),
+      reason: 'Agregada manualmente',
+    };
+    setSeedQuestions((prev) => [...prev, q]);
+    setNewCustomQuestion('');
+  };
+
+  const startEditQuestion = (q: SeedQuestion) => {
+    setEditingQuestionId(q.id);
+    setEditingQuestionText(q.question);
+  };
+
+  const saveEditQuestion = () => {
+    if (!editingQuestionId || !editingQuestionText.trim()) return;
+    setSeedQuestions((prev) =>
+      prev.map((q) =>
+        q.id === editingQuestionId
+          ? { ...q, question: editingQuestionText.trim() }
+          : q,
+      ),
+    );
+    setEditingQuestionId(null);
+    setEditingQuestionText('');
   };
 
   const copyLink = async (slug: string) => {
@@ -154,6 +223,112 @@ export function Dashboard() {
               value={newContext}
               onChange={(e) => setNewContext(e.target.value)}
             />
+
+            {/* Context Notes */}
+            <div className='dashboard__notes-section'>
+              <label className='dashboard__label'>Notas del Proyecto</label>
+              <textarea
+                className='dashboard__textarea'
+                placeholder='Pegá texto de WhatsApp, notas, info del cliente... Todo lo que sirva de contexto para generar mejores preguntas.'
+                value={newNotes}
+                onChange={(e) => setNewNotes(e.target.value)}
+                rows={4}
+              />
+              {newNotes.trim().length > 0 && (
+                <button
+                  className='dashboard__generate-btn'
+                  onClick={handleGenerateQuestions}
+                  disabled={generating}
+                  type='button'
+                >
+                  <Sparkles size={14} />
+                  <span>
+                    {generating ? 'Generando...' : 'Generar Preguntas con AI'}
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {/* Seed Questions */}
+            {seedQuestions.length > 0 && (
+              <div className='dashboard__seed-questions'>
+                <label className='dashboard__label'>
+                  Preguntas para el Cliente
+                </label>
+                <ul className='dashboard__seed-list'>
+                  {seedQuestions.map((q) => (
+                    <li key={q.id} className='dashboard__seed-item'>
+                      {editingQuestionId === q.id ? (
+                        <div className='dashboard__seed-edit'>
+                          <input
+                            className='dashboard__seed-edit-input'
+                            value={editingQuestionText}
+                            onChange={(e) =>
+                              setEditingQuestionText(e.target.value)
+                            }
+                            onKeyDown={(e) =>
+                              e.key === 'Enter' && saveEditQuestion()
+                            }
+                            autoFocus
+                          />
+                          <button
+                            className='dashboard__seed-action'
+                            onClick={saveEditQuestion}
+                            type='button'
+                            title='Guardar'
+                          >
+                            <Check size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className='dashboard__seed-text'>
+                            💬 {q.question}
+                          </span>
+                          <div className='dashboard__seed-actions'>
+                            <button
+                              className='dashboard__seed-action'
+                              onClick={() => startEditQuestion(q)}
+                              type='button'
+                              title='Editar'
+                            >
+                              <Pencil size={12} />
+                            </button>
+                            <button
+                              className='dashboard__seed-action dashboard__seed-action--remove'
+                              onClick={() => removeSeedQuestion(q.id)}
+                              type='button'
+                              title='Eliminar'
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <div className='dashboard__seed-add'>
+                  <input
+                    className='dashboard__seed-add-input'
+                    type='text'
+                    placeholder='Agregar pregunta personalizada...'
+                    value={newCustomQuestion}
+                    onChange={(e) => setNewCustomQuestion(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && addCustomQuestion()}
+                  />
+                  <button
+                    className='dashboard__seed-add-btn'
+                    onClick={addCustomQuestion}
+                    disabled={!newCustomQuestion.trim()}
+                    type='button'
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+
             <button
               className='dashboard__submit-btn'
               onClick={handleCreate}

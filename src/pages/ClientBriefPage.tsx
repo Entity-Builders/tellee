@@ -26,6 +26,7 @@ import type {
   FollowUpQuestion,
   FollowUpAnswer,
   BriefingAttachment,
+  SeedQuestion,
 } from '../types';
 import './ClientBriefPage.css';
 
@@ -97,6 +98,7 @@ export function ClientBriefPage() {
       const questions = await generateFollowUpQuestions(
         text,
         link.profession_context ?? undefined,
+        link.context_notes ?? undefined,
       );
 
       if (questions.length > 0) {
@@ -156,6 +158,7 @@ export function ClientBriefPage() {
       text,
       link.profession_context ?? undefined,
       answers,
+      link.context_notes ?? undefined,
     );
     setBriefing(result);
 
@@ -277,6 +280,9 @@ export function ClientBriefPage() {
               onFocusChange={setIsFocused}
               professionContext={link?.profession_context ?? undefined}
               linkTitle={link?.title}
+              seedQuestions={
+                (link?.seed_questions as SeedQuestion[] | null) ?? undefined
+              }
             />
             {error && (
               <div className='error-banner'>

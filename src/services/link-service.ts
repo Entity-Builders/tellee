@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import type { SeedQuestion } from '../types';
 
 export type LinkStatus = 'pending' | 'completed';
 
@@ -8,6 +9,8 @@ export interface BriefingLink {
   owner_id: string;
   title: string;
   profession_context: string | null;
+  context_notes: string | null;
+  seed_questions: SeedQuestion[] | null;
   is_active: boolean;
   status: LinkStatus;
   created_at: string;
@@ -29,6 +32,8 @@ function generateSlug(title: string): string {
 export async function createBriefingLink(
   title: string,
   professionContext?: string,
+  contextNotes?: string,
+  seedQuestions?: SeedQuestion[],
 ): Promise<BriefingLink> {
   const {
     data: { user },
@@ -49,12 +54,28 @@ export async function createBriefingLink(
       owner_id: user.id,
       title,
       profession_context: professionContext || null,
+      context_notes: contextNotes || null,
+      seed_questions:
+        seedQuestions && seedQuestions.length > 0 ? seedQuestions : null,
     })
     .select()
     .single();
 
   if (error) throw new Error(error.message);
   return data;
+}
+
+/** Update seed questions on an existing link */
+export async function updateLinkSeedQuestions(
+  linkId: string,
+  seedQuestions: SeedQuestion[],
+): Promise<void> {
+  const { error } = await supabase
+    .from('briefing_links')
+    .update({ seed_questions: seedQuestions })
+    .eq('id', linkId);
+
+  if (error) throw new Error(error.message);
 }
 
 /** List all links for the current user */

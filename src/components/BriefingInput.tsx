@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Sparkles, Paperclip, X, ImageIcon } from 'lucide-react';
-import type { BriefingAttachment } from '../types';
+import type { BriefingAttachment, SeedQuestion } from '../types';
 import './BriefingInput.css';
 
 interface BriefingInputProps {
@@ -12,6 +12,8 @@ interface BriefingInputProps {
   professionContext?: string;
   /** Link title — used for the greeting */
   linkTitle?: string;
+  /** AI-generated seed questions — shown as clickable chips */
+  seedQuestions?: SeedQuestion[];
 }
 
 const MAX_CHARS = 2000;
@@ -26,6 +28,7 @@ export function BriefingInput({
   onFocusChange,
   professionContext,
   linkTitle,
+  seedQuestions,
 }: BriefingInputProps) {
   const [text, setText] = useState(defaultValue);
   const [attachments, setAttachments] = useState<BriefingAttachment[]>([]);
@@ -207,6 +210,25 @@ export function BriefingInput({
               ? `Contanos lo que necesitás. Cuantos más detalles, mejor.`
               : `Contanos lo que necesitás. Cuantos más detalles, mejor.`}
           </p>
+
+          {/* Seed question chips */}
+          {seedQuestions && seedQuestions.length > 0 && (
+            <div className='briefing-input__seeds'>
+              {seedQuestions.map((q) => (
+                <button
+                  key={q.id}
+                  className='briefing-input__seed-chip'
+                  type='button'
+                  onClick={() => {
+                    setText(q.question);
+                    textareaRef.current?.focus();
+                  }}
+                >
+                  💬 {q.question}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
