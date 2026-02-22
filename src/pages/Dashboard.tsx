@@ -10,6 +10,9 @@ import {
   X,
   Trash2,
   Sparkles,
+  Pencil,
+  Check,
+  ArrowLeft,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
 import {
@@ -19,7 +22,11 @@ import {
   type BriefingLink,
 } from '../services/link-service';
 import { countBriefingsByLink } from '../services/briefing-db-service';
-import { generateLinkMetadata } from '../services/briefing-service';
+import {
+  generateLinkMetadata,
+  type LinkMetadata,
+} from '../services/briefing-service';
+import type { SeedQuestion } from '../types';
 import { APP_NAME } from '../constants';
 import './Dashboard.css';
 
@@ -27,15 +34,28 @@ interface LinkWithCount extends BriefingLink {
   briefingCount: number;
 }
 
+type CreatePhase = 'input' | 'generating' | 'review' | 'saving';
+
 export function Dashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [links, setLinks] = useState<LinkWithCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [description, setDescription] = useState('');
-  const [creating, setCreating] = useState(false);
   const [deletingLink, setDeletingLink] = useState<LinkWithCount | null>(null);
+
+  // Create flow state
+  const [createPhase, setCreatePhase] = useState<CreatePhase>('input');
+  const [description, setDescription] = useState('');
+  const [generatedTitle, setGeneratedTitle] = useState('');
+  const [generatedContext, setGeneratedContext] = useState('');
+  const [seedQuestions, setSeedQuestions] = useState<SeedQuestion[]>([]);
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(
+    null,
+  );
+  const [editingQuestionText, setEditingQuestionText] = useState('');
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [newCustomQuestion, setNewCustomQuestion] = useState('');
 
   useEffect(() => {
     loadLinks();
@@ -58,27 +78,93 @@ export function Dashboard() {
     }
   };
 
-  const handleCreate = async () => {
-    if (!description.trim()) return;
-    setCreating(true);
-    try {
-      // AI generates title, context, and seed questions from the description
-      const metadata = await generateLinkMetadata(description.trim());
+  const resetCreateForm = () => {
+    setDescription('');
+    setGeneratedTitle('');
+    setGeneratedContext('');
+    setSeedQuestions([]);
+    setCreatePhase('input');
+    setEditingQuestionId(null);
+    setEditingTitle(false);
+    setNewCustomQuestion('');
+  };
 
-      await createBriefingLink(
-        metadata.title,
-        metadata.professionContext || undefined,
+  const closeCreate = () => {
+    setShowCreate(false);
+    resetCreateForm();
+  };
+
+  // Phase 1 → 2: Generate metadata from description
+  const handleGenerate = async () => {
+    if (!description.trim()) return;
+    setCreatePhase('generating');
+    try {
+      const metadata: LinkMetadata = await generateLinkMetadata(
         description.trim(),
-        metadata.seedQuestions.length > 0 ? metadata.seedQuestions : undefined,
       );
-      setDescription('');
-      setShowCreate(false);
+      setGeneratedTitle(metadata.title);
+      setGeneratedContext(metadata.professionContext);
+      setSeedQuestions(metadata.seedQuestions);
+      setCreatePhase('review');
+    } catch (err) {
+      console.error('Failed to generate metadata:', err);
+      setCreatePhase('input');
+    }
+  };
+
+  // Phase 2 → Done: Create the link
+  const handleConfirm = async () => {
+    if (!generatedTitle.trim()) return;
+    setCreatePhase('saving');
+    try {
+      await createBriefingLink(
+        generatedTitle.trim(),
+        generatedContext.trim() || undefined,
+        description.trim(),
+        seedQuestions.length > 0 ? seedQuestions : undefined,
+      );
+      closeCreate();
       await loadLinks();
     } catch (err) {
       console.error('Failed to create link:', err);
-    } finally {
-      setCreating(false);
+      setCreatePhase('review');
     }
+  };
+
+  // Question management
+  const removeSeedQuestion = (id: string) => {
+    setSeedQuestions((prev) => prev.filter((q) => q.id !== id));
+  };
+
+  const startEditQuestion = (q: SeedQuestion) => {
+    setEditingQuestionId(q.id);
+    setEditingQuestionText(q.question);
+  };
+
+  const saveEditQuestion = () => {
+    if (!editingQuestionId || !editingQuestionText.trim()) return;
+    setSeedQuestions((prev) =>
+      prev.map((q) =>
+        q.id === editingQuestionId
+          ? { ...q, question: editingQuestionText.trim() }
+          : q,
+      ),
+    );
+    setEditingQuestionId(null);
+    setEditingQuestionText('');
+  };
+
+  const addCustomQuestion = () => {
+    if (!newCustomQuestion.trim()) return;
+    setSeedQuestions((prev) => [
+      ...prev,
+      {
+        id: `custom-${Date.now()}`,
+        question: newCustomQuestion.trim(),
+        reason: 'Agregada manualmente',
+      },
+    ]);
+    setNewCustomQuestion('');
   };
 
   const copyLink = async (slug: string) => {
@@ -138,34 +224,207 @@ export function Dashboard() {
         {showCreate && (
           <div className='dashboard__create-form glass-card animate-fade-in-up'>
             <div className='dashboard__create-form-header'>
-              <h3>Nuevo Link de Briefing</h3>
+              <h3>
+                {createPhase === 'review' || createPhase === 'saving'
+                  ? 'Revisá y Confirmá'
+                  : 'Nuevo Link de Briefing'}
+              </h3>
               <button
                 className='dashboard__create-form-close'
-                onClick={() => setShowCreate(false)}
+                onClick={closeCreate}
                 type='button'
               >
                 <X size={16} />
               </button>
             </div>
-            <textarea
-              className='dashboard__textarea'
-              placeholder={
-                'Describí el proyecto o pegá texto de WhatsApp, notas, info del cliente...\n\nLa AI genera el título, contexto y preguntas automáticamente.'
-              }
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={5}
-              autoFocus
-            />
-            <button
-              className='dashboard__submit-btn dashboard__submit-btn--ai'
-              onClick={handleCreate}
-              disabled={!description.trim() || creating}
-              type='button'
-            >
-              <Sparkles size={14} />
-              <span>{creating ? 'Creando con AI...' : 'Crear Link'}</span>
-            </button>
+
+            {/* Phase 1: Input description */}
+            {(createPhase === 'input' || createPhase === 'generating') && (
+              <>
+                <textarea
+                  className='dashboard__textarea'
+                  placeholder={
+                    'Describí el proyecto o pegá texto de WhatsApp, notas, info del cliente...\n\nLa AI genera el título, contexto y preguntas automáticamente.'
+                  }
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={5}
+                  autoFocus
+                  disabled={createPhase === 'generating'}
+                />
+                <button
+                  className='dashboard__submit-btn dashboard__submit-btn--ai'
+                  onClick={handleGenerate}
+                  disabled={!description.trim() || createPhase === 'generating'}
+                  type='button'
+                >
+                  <Sparkles size={14} />
+                  <span>
+                    {createPhase === 'generating'
+                      ? 'Generando...'
+                      : 'Generar Link'}
+                  </span>
+                </button>
+              </>
+            )}
+
+            {/* Phase 2: Review & edit */}
+            {(createPhase === 'review' || createPhase === 'saving') && (
+              <>
+                {/* Back button */}
+                <button
+                  className='dashboard__back-btn'
+                  onClick={() => setCreatePhase('input')}
+                  type='button'
+                  disabled={createPhase === 'saving'}
+                >
+                  <ArrowLeft size={14} />
+                  <span>Cambiar descripción</span>
+                </button>
+
+                {/* Generated title */}
+                <div className='dashboard__review-field'>
+                  <label className='dashboard__label'>
+                    Título del Proyecto
+                  </label>
+                  {editingTitle ? (
+                    <div className='dashboard__seed-edit'>
+                      <input
+                        className='dashboard__seed-edit-input'
+                        value={generatedTitle}
+                        onChange={(e) => setGeneratedTitle(e.target.value)}
+                        onKeyDown={(e) =>
+                          e.key === 'Enter' && setEditingTitle(false)
+                        }
+                        autoFocus
+                      />
+                      <button
+                        className='dashboard__seed-action'
+                        onClick={() => setEditingTitle(false)}
+                        type='button'
+                      >
+                        <Check size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className='dashboard__review-title'>
+                      <span>{generatedTitle}</span>
+                      <button
+                        className='dashboard__seed-action'
+                        onClick={() => setEditingTitle(true)}
+                        type='button'
+                        title='Editar título'
+                      >
+                        <Pencil size={12} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Generated context */}
+                {generatedContext && (
+                  <div className='dashboard__review-field'>
+                    <label className='dashboard__label'>Contexto</label>
+                    <span className='dashboard__review-context'>
+                      {generatedContext}
+                    </span>
+                  </div>
+                )}
+
+                {/* Seed Questions */}
+                <div className='dashboard__seed-questions'>
+                  <label className='dashboard__label'>
+                    Preguntas para el Cliente ({seedQuestions.length})
+                  </label>
+                  {seedQuestions.length > 0 && (
+                    <ul className='dashboard__seed-list'>
+                      {seedQuestions.map((q) => (
+                        <li key={q.id} className='dashboard__seed-item'>
+                          {editingQuestionId === q.id ? (
+                            <div className='dashboard__seed-edit'>
+                              <input
+                                className='dashboard__seed-edit-input'
+                                value={editingQuestionText}
+                                onChange={(e) =>
+                                  setEditingQuestionText(e.target.value)
+                                }
+                                onKeyDown={(e) =>
+                                  e.key === 'Enter' && saveEditQuestion()
+                                }
+                                autoFocus
+                              />
+                              <button
+                                className='dashboard__seed-action'
+                                onClick={saveEditQuestion}
+                                type='button'
+                              >
+                                <Check size={12} />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <span className='dashboard__seed-text'>
+                                💬 {q.question}
+                              </span>
+                              <div className='dashboard__seed-actions'>
+                                <button
+                                  className='dashboard__seed-action'
+                                  onClick={() => startEditQuestion(q)}
+                                  type='button'
+                                  title='Editar'
+                                >
+                                  <Pencil size={12} />
+                                </button>
+                                <button
+                                  className='dashboard__seed-action dashboard__seed-action--remove'
+                                  onClick={() => removeSeedQuestion(q.id)}
+                                  type='button'
+                                  title='Eliminar'
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className='dashboard__seed-add'>
+                    <input
+                      className='dashboard__seed-add-input'
+                      type='text'
+                      placeholder='Agregar pregunta personalizada...'
+                      value={newCustomQuestion}
+                      onChange={(e) => setNewCustomQuestion(e.target.value)}
+                      onKeyDown={(e) =>
+                        e.key === 'Enter' && addCustomQuestion()
+                      }
+                    />
+                    <button
+                      className='dashboard__seed-add-btn'
+                      onClick={addCustomQuestion}
+                      disabled={!newCustomQuestion.trim()}
+                      type='button'
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm button */}
+                <button
+                  className='dashboard__submit-btn'
+                  onClick={handleConfirm}
+                  disabled={!generatedTitle.trim() || createPhase === 'saving'}
+                  type='button'
+                >
+                  {createPhase === 'saving'
+                    ? 'Creando...'
+                    : '✓ Confirmar y Crear'}
+                </button>
+              </>
+            )}
           </div>
         )}
 
