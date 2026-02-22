@@ -282,6 +282,12 @@ export function Dashboard() {
                   <span>Cambiar descripción</span>
                 </button>
 
+                {/* Original notes */}
+                <div className='dashboard__review-field'>
+                  <label className='dashboard__label'>Notas originales</label>
+                  <p className='dashboard__review-notes'>{description}</p>
+                </div>
+
                 {/* Generated title */}
                 <div className='dashboard__review-field'>
                   <label className='dashboard__label'>
