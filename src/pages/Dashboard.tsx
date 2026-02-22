@@ -49,6 +49,7 @@ export function Dashboard() {
   const [description, setDescription] = useState('');
   const [generatedTitle, setGeneratedTitle] = useState('');
   const [generatedContext, setGeneratedContext] = useState('');
+  const [generatedSummary, setGeneratedSummary] = useState('');
   const [seedQuestions, setSeedQuestions] = useState<SeedQuestion[]>([]);
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(
     null,
@@ -82,6 +83,7 @@ export function Dashboard() {
     setDescription('');
     setGeneratedTitle('');
     setGeneratedContext('');
+    setGeneratedSummary('');
     setSeedQuestions([]);
     setCreatePhase('input');
     setEditingQuestionId(null);
@@ -104,6 +106,7 @@ export function Dashboard() {
       );
       setGeneratedTitle(metadata.title);
       setGeneratedContext(metadata.professionContext);
+      setGeneratedSummary(metadata.summary);
       setSeedQuestions(metadata.seedQuestions);
       setCreatePhase('review');
     } catch (err) {
@@ -282,11 +285,17 @@ export function Dashboard() {
                   <span>Cambiar descripción</span>
                 </button>
 
-                {/* Original notes */}
-                <div className='dashboard__review-field'>
-                  <label className='dashboard__label'>Notas originales</label>
-                  <p className='dashboard__review-notes'>{description}</p>
-                </div>
+                {/* AI Summary */}
+                {generatedSummary && (
+                  <div className='dashboard__review-field'>
+                    <label className='dashboard__label'>
+                      Resumen de las notas
+                    </label>
+                    <p className='dashboard__review-notes'>
+                      {generatedSummary}
+                    </p>
+                  </div>
+                )}
 
                 {/* Generated title */}
                 <div className='dashboard__review-field'>

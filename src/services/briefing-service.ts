@@ -99,6 +99,7 @@ FORMATO:
 export interface LinkMetadata {
   title: string;
   professionContext: string;
+  summary: string;
   seedQuestions: SeedQuestion[];
 }
 
@@ -107,11 +108,13 @@ const LINK_METADATA_PROMPT = `Eres un asistente que ayuda a profesionales a prep
 A partir del texto/notas que te pase el profesional, necesitás generar:
 1. Un TÍTULO corto y descriptivo del proyecto (máx 6 palabras). Ej: "Sitio Web para Clínica Dental", "Diseño de Logo Restaurante"
 2. Un CONTEXTO PROFESIONAL breve (1-3 palabras del rubro). Ej: "Desarrollo Web", "Diseño Gráfico", "Marketing Digital"
-3. 3-5 PREGUNTAS clave que el profesional debería hacerle al cliente
+3. Un RESUMEN conciso (2-3 oraciones) que sintetice los puntos clave de las notas del profesional
+4. 3-5 PREGUNTAS clave que el profesional debería hacerle al cliente
 
 REGLAS:
 - El título debe ser claro y específico al proyecto
 - El contexto debe ser el rubro/servicio del profesional
+- El resumen debe capturar la esencia del pedido sin repetir el texto original completo
 - Las preguntas deben basarse en la info del texto, NO ser genéricas
 - Máximo 5 preguntas, mínimo 2
 - Responde en español
@@ -121,6 +124,7 @@ FORMATO:
 {
   "title": "Título del Proyecto",
   "professionContext": "Rubro Profesional",
+  "summary": "Resumen conciso de las notas...",
   "questions": [
     { "id": "sq1", "question": "La pregunta", "reason": "Por qué importa" }
   ]
@@ -138,6 +142,7 @@ export async function generateLinkMetadata(
     return {
       title: firstLine || 'Nuevo Proyecto',
       professionContext: '',
+      summary: '',
       seedQuestions: [],
     };
   }
@@ -168,6 +173,7 @@ export async function generateLinkMetadata(
     let parsed: {
       title: string;
       professionContext: string;
+      summary: string;
       questions: SeedQuestion[];
     };
 
@@ -182,6 +188,7 @@ export async function generateLinkMetadata(
           title:
             contextNotes.split('\n')[0].slice(0, 60).trim() || 'Nuevo Proyecto',
           professionContext: '',
+          summary: '',
           seedQuestions: [],
         };
       }
@@ -190,6 +197,7 @@ export async function generateLinkMetadata(
     return {
       title: parsed.title || 'Nuevo Proyecto',
       professionContext: parsed.professionContext || '',
+      summary: parsed.summary || '',
       seedQuestions: parsed.questions ?? [],
     };
   } catch {
@@ -197,6 +205,7 @@ export async function generateLinkMetadata(
       title:
         contextNotes.split('\n')[0].slice(0, 60).trim() || 'Nuevo Proyecto',
       professionContext: '',
+      summary: '',
       seedQuestions: [],
     };
   }
