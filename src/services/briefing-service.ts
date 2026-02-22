@@ -144,6 +144,7 @@ FORMATO:
 /** Generate link title, profession context and seed questions from admin's notes */
 export async function generateLinkMetadata(
   contextNotes: string,
+  profileContext?: string,
 ): Promise<LinkMetadata> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -162,6 +163,9 @@ export async function generateLinkMetadata(
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
+  // Build input with optional profile context
+  const profileBlock = profileContext ? `\n\n${profileContext}\n` : '';
+
   try {
     const result = await model.generateContent({
       contents: [
@@ -169,7 +173,7 @@ export async function generateLinkMetadata(
           role: 'user',
           parts: [
             {
-              text: `${LINK_METADATA_PROMPT}\n\n--- NOTAS DEL PROFESIONAL ---\n${contextNotes}\n--- FIN ---\n\nGenera el JSON:`,
+              text: `${LINK_METADATA_PROMPT}${profileBlock}\n\n--- NOTAS DEL PROFESIONAL ---\n${contextNotes}\n--- FIN ---\n\nGenera el JSON:`,
             },
           ],
         },

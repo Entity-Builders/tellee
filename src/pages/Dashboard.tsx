@@ -14,6 +14,9 @@ import {
   Check,
   ArrowLeft,
   HelpCircle,
+  Settings,
+  Save,
+  Zap,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
 import {
@@ -30,6 +33,12 @@ import {
 } from '../services/briefing-service';
 import type { SeedQuestion } from '../types';
 import { APP_NAME } from '../constants';
+import {
+  getMyProfile,
+  updateMyProfile,
+  buildProfileContext,
+  type AdminProfile,
+} from '../services/profile-service';
 import './Dashboard.css';
 
 interface LinkWithCount extends BriefingLink {
@@ -66,9 +75,57 @@ export function Dashboard() {
     {},
   );
 
+  // Profile state
+  const [profile, setProfile] = useState<AdminProfile | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    display_name: '',
+    profession: '',
+    business_name: '',
+    business_description: '',
+    default_notes: '',
+  });
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+
   useEffect(() => {
     loadLinks();
+    loadProfile();
   }, []);
+
+  const loadProfile = async () => {
+    const p = await getMyProfile();
+    if (p) {
+      setProfile(p);
+      setProfileForm({
+        display_name: p.display_name || '',
+        profession: p.profession || '',
+        business_name: p.business_name || '',
+        business_description: p.business_description || '',
+        default_notes: p.default_notes || '',
+      });
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      const updated = await updateMyProfile({
+        display_name: profileForm.display_name || null,
+        profession: profileForm.profession || null,
+        business_name: profileForm.business_name || null,
+        business_description: profileForm.business_description || null,
+        default_notes: profileForm.default_notes || null,
+      });
+      setProfile(updated);
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 2000);
+    } catch (err) {
+      console.error('Failed to save profile:', err);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   const loadLinks = async () => {
     try {
@@ -111,8 +168,10 @@ export function Dashboard() {
     if (!description.trim()) return;
     setCreatePhase('generating');
     try {
+      const profileCtx = buildProfileContext(profile);
       const metadata: LinkMetadata = await generateLinkMetadata(
         description.trim(),
+        profileCtx || undefined,
       );
       setGeneratedTitle(metadata.title);
       setGeneratedContext(metadata.professionContext);
@@ -123,6 +182,27 @@ export function Dashboard() {
     } catch (err) {
       console.error('Failed to generate metadata:', err);
       setCreatePhase('input');
+    }
+  };
+
+  // Quick create: link from profile only (no textarea)
+  const handleQuickCreate = async () => {
+    if (!profile?.profession) return;
+    setShowCreate(false);
+    try {
+      const title = profile.business_name
+        ? `Briefing — ${profile.business_name}`
+        : `Briefing — ${profile.profession}`;
+      await createBriefingLink(
+        title,
+        profile.profession || undefined,
+        profile.default_notes || undefined,
+        undefined,
+        profile.business_description || undefined,
+      );
+      await loadLinks();
+    } catch (err) {
+      console.error('Failed to quick-create link:', err);
     }
   };
 
@@ -223,6 +303,14 @@ export function Dashboard() {
         <div className='dashboard__user'>
           <span className='dashboard__email'>{user?.email}</span>
           <button
+            className={`dashboard__settings ${showProfile ? 'dashboard__settings--active' : ''}`}
+            onClick={() => setShowProfile(!showProfile)}
+            type='button'
+            title='Mi perfil'
+          >
+            <Settings size={16} />
+          </button>
+          <button
             className='dashboard__logout'
             onClick={signOut}
             type='button'
@@ -233,18 +321,122 @@ export function Dashboard() {
         </div>
       </header>
 
+      {/* Profile Panel (collapsible) */}
+      {showProfile && (
+        <div className='dashboard__profile glass-card animate-fade-in-up'>
+          <h3 className='dashboard__profile-title'>Mi Perfil Profesional</h3>
+          <p className='dashboard__profile-hint'>
+            Esta info se usa automáticamente al crear links para enriquecer el
+            contexto.
+          </p>
+          <div className='dashboard__profile-grid'>
+            <div className='dashboard__profile-field'>
+              <label className='dashboard__label'>Nombre / Empresa</label>
+              <input
+                className='dashboard__input'
+                placeholder='Ej: Studio Textil, Juan Pérez'
+                value={profileForm.business_name}
+                onChange={(e) =>
+                  setProfileForm((f) => ({
+                    ...f,
+                    business_name: e.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div className='dashboard__profile-field'>
+              <label className='dashboard__label'>Profesión / Rubro</label>
+              <input
+                className='dashboard__input'
+                placeholder='Ej: Desarrollo Web, Diseño Textil'
+                value={profileForm.profession}
+                onChange={(e) =>
+                  setProfileForm((f) => ({
+                    ...f,
+                    profession: e.target.value,
+                  }))
+                }
+              />
+            </div>
+          </div>
+          <div className='dashboard__profile-field'>
+            <label className='dashboard__label'>Descripción de servicios</label>
+            <textarea
+              className='dashboard__textarea'
+              placeholder='Ej: Fabricamos telas premium para moda y hogar. Especialistas en algodón orgánico.'
+              value={profileForm.business_description}
+              onChange={(e) =>
+                setProfileForm((f) => ({
+                  ...f,
+                  business_description: e.target.value,
+                }))
+              }
+              rows={2}
+            />
+          </div>
+          <div className='dashboard__profile-field'>
+            <label className='dashboard__label'>Notas persistentes</label>
+            <textarea
+              className='dashboard__textarea'
+              placeholder='Info que siempre aplica: restricciones, preferencias, horarios, etc.'
+              value={profileForm.default_notes}
+              onChange={(e) =>
+                setProfileForm((f) => ({
+                  ...f,
+                  default_notes: e.target.value,
+                }))
+              }
+              rows={2}
+            />
+          </div>
+          <button
+            className='dashboard__submit-btn'
+            onClick={handleSaveProfile}
+            disabled={savingProfile}
+            type='button'
+          >
+            {savingProfile ? (
+              'Guardando...'
+            ) : profileSaved ? (
+              <>
+                <Check size={14} />
+                <span>Guardado</span>
+              </>
+            ) : (
+              <>
+                <Save size={14} />
+                <span>Guardar Perfil</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Main */}
       <main className='dashboard__main'>
         <div className='dashboard__toolbar'>
           <h2 className='dashboard__section-title'>Mis Links</h2>
-          <button
-            className='dashboard__create-btn'
-            onClick={() => setShowCreate(true)}
-            type='button'
-          >
-            <Plus size={16} />
-            <span>Crear Link</span>
-          </button>
+          <div className='dashboard__toolbar-actions'>
+            {profile?.profession && (
+              <button
+                className='dashboard__quick-btn'
+                onClick={handleQuickCreate}
+                type='button'
+                title='Crear link rápido usando tu perfil'
+              >
+                <Zap size={14} />
+                <span>Link Rápido</span>
+              </button>
+            )}
+            <button
+              className='dashboard__create-btn'
+              onClick={() => setShowCreate(true)}
+              type='button'
+            >
+              <Plus size={16} />
+              <span>Crear Link</span>
+            </button>
+          </div>
         </div>
 
         {/* Create Modal */}
