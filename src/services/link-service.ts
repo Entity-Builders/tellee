@@ -105,3 +105,13 @@ export async function deactivateLink(linkId: string): Promise<void> {
 
   if (error) throw new Error(error.message);
 }
+
+/** Delete a link permanently (cascades to briefings & replies) */
+export async function deleteLink(linkId: string): Promise<void> {
+  const { error } = await supabase
+    .from('briefing_links')
+    .delete()
+    .eq('id', linkId);
+
+  if (error) throw new Error(error.message);
+}

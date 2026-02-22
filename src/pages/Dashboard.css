@@ -295,6 +295,12 @@
   box-shadow: var(--shadow-glow);
 }
 
+.dashboard__link-btn--danger:hover {
+  border-color: var(--color-error, #ef4444);
+  color: var(--color-error, #ef4444);
+  background: rgba(239, 68, 68, 0.08);
+}
+
 @media (max-width: 600px) {
   .dashboard__link-card {
     flex-direction: column;
@@ -303,4 +309,77 @@
   .dashboard__link-actions {
     align-self: flex-end;
   }
+}
+
+/* Delete Confirmation Modal */
+.dashboard__confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-lg);
+}
+
+.dashboard__confirm-modal {
+  max-width: 400px;
+  width: 100%;
+  padding: var(--space-xl);
+  text-align: center;
+}
+
+.dashboard__confirm-modal h3 {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-sm);
+}
+
+.dashboard__confirm-modal p {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin-bottom: var(--space-lg);
+}
+
+.dashboard__confirm-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+}
+
+.dashboard__confirm-btn {
+  padding: var(--space-sm) var(--space-xl);
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid var(--color-border);
+}
+
+.dashboard__confirm-btn--cancel {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+}
+
+.dashboard__confirm-btn--cancel:hover {
+  border-color: var(--color-border-active);
+  color: var(--color-text-primary);
+}
+
+.dashboard__confirm-btn--delete {
+  background: var(--color-error, #ef4444);
+  border-color: transparent;
+  color: white;
+}
+
+.dashboard__confirm-btn--delete:hover {
+  opacity: 0.9;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
 }

@@ -8,11 +8,13 @@ import {
   MessageSquareText,
   FileText,
   X,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
 import {
   listMyLinks,
   createBriefingLink,
+  deleteLink,
   type BriefingLink,
 } from '../services/link-service';
 import { countBriefingsByLink } from '../services/briefing-db-service';
@@ -32,6 +34,7 @@ export function Dashboard() {
   const [newTitle, setNewTitle] = useState('');
   const [newContext, setNewContext] = useState('');
   const [creating, setCreating] = useState(false);
+  const [deletingLink, setDeletingLink] = useState<LinkWithCount | null>(null);
 
   useEffect(() => {
     loadLinks();
@@ -73,6 +76,17 @@ export function Dashboard() {
   const copyLink = async (slug: string) => {
     const url = `${window.location.origin}/b/${slug}`;
     await navigator.clipboard.writeText(url);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingLink) return;
+    try {
+      await deleteLink(deletingLink.id);
+      setDeletingLink(null);
+      await loadLinks();
+    } catch (err) {
+      console.error('Failed to delete link:', err);
+    }
   };
 
   return (
@@ -215,12 +229,55 @@ export function Dashboard() {
                     <FileText size={14} />
                     <span>Ver</span>
                   </button>
+                  <button
+                    className='dashboard__link-btn dashboard__link-btn--danger'
+                    onClick={() => setDeletingLink(link)}
+                    type='button'
+                    title='Eliminar link'
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {deletingLink && (
+        <div
+          className='dashboard__confirm-overlay'
+          onClick={() => setDeletingLink(null)}
+        >
+          <div
+            className='dashboard__confirm-modal glass-card animate-fade-in-up'
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>¿Eliminar link?</h3>
+            <p>
+              Se eliminará <strong>"{deletingLink.title}"</strong> y todos sus
+              briefings asociados. Esta acción no se puede deshacer.
+            </p>
+            <div className='dashboard__confirm-actions'>
+              <button
+                className='dashboard__confirm-btn dashboard__confirm-btn--cancel'
+                onClick={() => setDeletingLink(null)}
+                type='button'
+              >
+                Cancelar
+              </button>
+              <button
+                className='dashboard__confirm-btn dashboard__confirm-btn--delete'
+                onClick={confirmDelete}
+                type='button'
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
