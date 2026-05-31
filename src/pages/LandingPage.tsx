@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import {
-  MessageSquareText,
   Link as LinkIcon,
   Sparkles,
   Shield,

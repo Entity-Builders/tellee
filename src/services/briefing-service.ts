@@ -8,6 +8,7 @@ import type {
   FollowUpAnswer,
   SeedQuestion,
 } from '../types';
+import { TELLEE_GEMINI_MODEL } from './gemini-config';
 
 const SYSTEM_PROMPT = `Eres un asistente experto en convertir descripciones informales de clientes en especificaciones técnicas estructuradas para profesionales.
 
@@ -161,7 +162,7 @@ export async function generateLinkMetadata(
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const model = genAI.getGenerativeModel({ model: TELLEE_GEMINI_MODEL });
 
   // Build input with optional profile context
   const profileBlock = profileContext ? `\n\n${profileContext}\n` : '';
@@ -243,7 +244,7 @@ export async function generateFollowUpQuestions(
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const model = genAI.getGenerativeModel({ model: TELLEE_GEMINI_MODEL });
 
   const contextNote = professionContext
     ? `\n\nCONTEXTO DEL PROFESIONAL: ${professionContext}.`
@@ -306,7 +307,7 @@ export async function curateBriefing(
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const model = genAI.getGenerativeModel({ model: TELLEE_GEMINI_MODEL });
 
   const contextNote = professionContext
     ? `\n\nCONTEXTO DEL PROFESIONAL: ${professionContext}. Ten en cuenta este contexto al extraer y nombrar los campos.`

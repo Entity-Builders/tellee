@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { CuratedBriefing } from '../types';
+import { TELLEE_GEMINI_MODEL } from './gemini-config';
 
 const DESCRIPTION_PROMPT = `Eres un redactor experto en crear documentos de proyecto bellos y profesionales.
 
@@ -45,7 +46,7 @@ export async function generateProjectDescription(
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const model = genAI.getGenerativeModel({ model: TELLEE_GEMINI_MODEL });
 
   // Build context with all data
   const contextParts: string[] = [];

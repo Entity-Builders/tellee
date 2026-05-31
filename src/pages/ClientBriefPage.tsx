@@ -40,8 +40,9 @@ export function ClientBriefPage() {
   const [initialReplies, setInitialReplies] = useState<Map<number, string>>(
     new Map(),
   );
-  const [initialClientQuestionReplies, setInitialClientQuestionReplies] =
-    useState<Map<number, string>>(new Map());
+  const [initialClientQuestionReplies] = useState<Map<number, string>>(
+    new Map(),
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
