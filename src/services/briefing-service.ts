@@ -149,7 +149,7 @@ export async function generateLinkMetadata(
 ): Promise<LinkMetadata> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+  if (import.meta.env.PROD || !apiKey || apiKey === 'your_gemini_api_key_here') {
     // Fallback: extract a basic title from first line
     const firstLine = contextNotes.split('\n')[0].slice(0, 60).trim();
     return {
@@ -239,7 +239,7 @@ export async function generateFollowUpQuestions(
 ): Promise<FollowUpQuestion[]> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+  if (import.meta.env.PROD || !apiKey || apiKey === 'your_gemini_api_key_here') {
     return []; // Fallback: skip follow-up if no API key
   }
 
@@ -298,6 +298,10 @@ export async function curateBriefing(
   followUpAnswers?: FollowUpAnswer[],
   contextNotes?: string,
 ): Promise<CuratedBriefing> {
+  if (import.meta.env.PROD) {
+    throw new Error('Gemini calls from the browser are explicitly deferred in production (see AI Spend Governance).');
+  }
+
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
   if (!apiKey || apiKey === 'your_gemini_api_key_here') {

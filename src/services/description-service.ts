@@ -37,6 +37,10 @@ interface DescriptionInput {
 export async function generateProjectDescription(
   input: DescriptionInput,
 ): Promise<string> {
+  if (import.meta.env.PROD) {
+    throw new Error('Gemini calls from the browser are explicitly deferred in production (see AI Spend Governance).');
+  }
+
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
   if (!apiKey || apiKey === 'your_gemini_api_key_here') {
