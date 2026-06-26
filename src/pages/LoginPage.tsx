@@ -22,7 +22,7 @@ export function LoginPage() {
           </div>
           <h1 className='login-page__title'>{APP_NAME}</h1>
           <p className='login-page__subtitle'>
-            Ingresá para gestionar tus briefings
+            Ingresá para gestionar el workspace privado
           </p>
         </div>
 

@@ -1,13 +1,13 @@
 ---
 name: 'Tellee'
-tagline: 'AI Podcaster and Briefing Generator'
+tagline: 'Private briefing engine for Entity Builders'
 platform: 'Web'
 status: 'internal'
 category: 'internal'
-icon: '🎧'
+icon: '🧭'
 features:
-  - 'AI generated briefings'
-  - 'Audio generation'
+  - 'Private diagnostic engine'
+  - 'AI-generated briefing structure'
 downloadUrl: ''
 visible: false
 ---

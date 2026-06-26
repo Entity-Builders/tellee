@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import {
   Link as LinkIcon,
+  LockKeyhole,
   Sparkles,
   Shield,
 } from 'lucide-react';
@@ -21,23 +22,24 @@ export function LandingPage() {
       {/* Hero */}
       <section className='landing__hero'>
         <div className='landing__hero-badge animate-fade-in-up'>
-          <Sparkles size={14} />
-          <span>AI-Powered</span>
+          <LockKeyhole size={14} />
+          <span>Workspace privado</span>
         </div>
         <h1 className='landing__hero-title animate-fade-in-up'>{APP_NAME}</h1>
         <p className='landing__hero-subtitle animate-fade-in-up-delay-1'>
           {APP_TAGLINE}
         </p>
         <p className='landing__hero-description animate-fade-in-up-delay-2'>
-          Creá links únicos para tus clientes. Ellos describen lo que necesitan
-          con sus palabras, la IA lo organiza para vos en un brief profesional.
+          Tellee no es una marca publica en esta etapa. Sus conceptos de intake,
+          preguntas y brief completo viven como infraestructura interna detras
+          del diagnostico de Entity Builders.
         </p>
         <button
           className='landing__cta animate-fade-in-up-delay-3'
           onClick={handleCTA}
           type='button'
         >
-          {user ? 'Ir al Dashboard' : 'Empezar Gratis'}
+          {user ? 'Abrir dashboard' : 'Ingresar al workspace'}
         </button>
       </section>
 
@@ -49,8 +51,8 @@ export function LandingPage() {
           </div>
           <h3>Links Compartibles</h3>
           <p>
-            Generá un link por proyecto y compartilo con tu cliente por WhatsApp
-            o email.
+            Conserva el modelo original de links de briefing para uso interno y
+            pruebas controladas.
           </p>
         </div>
         <div className='landing__feature glass-card animate-fade-in-up-delay-1'>
@@ -59,8 +61,8 @@ export function LandingPage() {
           </div>
           <h3>IA que Organiza</h3>
           <p>
-            La IA extrae datos clave, identifica preguntas del cliente y sugiere
-            lo que falta preguntar.
+            El motor privado extrae campos, preguntas del visitante y riesgos
+            antes de preparar un brief.
           </p>
         </div>
         <div className='landing__feature glass-card animate-fade-in-up-delay-2'>
@@ -69,8 +71,8 @@ export function LandingPage() {
           </div>
           <h3>Todo Guardado</h3>
           <p>
-            Cada briefing queda guardado en tu dashboard. Historial completo por
-            cliente.
+            Entity Builders consume esta capacidad del lado servidor sin mostrar
+            Tellee como segunda marca publica.
           </p>
         </div>
       </section>
@@ -78,7 +80,7 @@ export function LandingPage() {
       {/* Footer */}
       <footer className='landing__footer'>
         <p>
-          Hecho con ✨ por{' '}
+          Infraestructura interna de{' '}
           <span className='landing__footer-brand'>Entity Builders</span>
         </p>
       </footer>
